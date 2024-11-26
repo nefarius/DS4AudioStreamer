@@ -1,9 +1,11 @@
 ﻿using DS4AudioStreamer;
 using DS4AudioStreamer.Sound;
 
-var hidDevices = DeviceEnumerator.FindDevices();
+using DS4Windows;
 
-var usedDevice = hidDevices.FirstOrDefault();
+List<HidDevice> hidDevices = DeviceEnumerator.FindDevices();
+
+HidDevice? usedDevice = hidDevices.FirstOrDefault();
 
 if (null == usedDevice)
 {
@@ -19,7 +21,7 @@ if (!usedDevice.IsOpen)
     usedDevice.OpenDevice(false);
 }
 
-var captureWorker = new NewCaptureWorker(usedDevice);
+NewCaptureWorker captureWorker = new NewCaptureWorker(usedDevice);
 captureWorker.Start();
 
 while (usedDevice.IsConnected)

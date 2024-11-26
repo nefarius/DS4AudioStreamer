@@ -1,10 +1,9 @@
 using static SharpSBC.Native;
 
-namespace SharpSBC
+namespace SharpSBC;
+
+public enum AllocationMode
 {
-    public enum AllocationMode: int
-    {
-        Loudness = SBC_AM_LOUDNESS,
-        Snr = SBC_AM_SNR,
-    }
+    Loudness = SBC_AM_LOUDNESS,
+    Snr = SBC_AM_SNR
 }

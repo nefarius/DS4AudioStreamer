@@ -1,10 +1,9 @@
 using static SharpSBC.Native;
 
-namespace SharpSBC
+namespace SharpSBC;
+
+public enum SubBandCount
 {
-    public enum SubBandCount: int
-    {
-        Sb4 = SBC_SB_4,
-        Sb8 = SBC_SB_8,
-    }
+    Sb4 = SBC_SB_4,
+    Sb8 = SBC_SB_8
 }
