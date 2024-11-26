@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace SharpSBC;
 
-public static unsafe class Native
+internal static unsafe class Native
 {
     private const string LibraryName = "libs/libsbc.dll";
 
