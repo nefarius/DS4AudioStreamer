@@ -1,8 +1,16 @@
 # DS4AudioStreamer
 
-POC (Proof of Concept) for BT Audio streaming to the DualShock 4 controller. This could be integrated into something like DS4Windows.
+POC (Proof of Concept) for BT Audio streaming to the DualShock 4 controller. This could be integrated into something
+like DS4Windows.
 
-Since this is just a POC, it's not reliable enough to survive disconnections or audio device switches, but should serve as a good enough example of how good it can work.
+Since this is just a POC, it's not reliable enough to survive disconnections or audio device switches, but should serve
+as a good enough example of how good it can work.
+
+## Credits
+
+Built on the work of @asimonf, @Nielk1, @nefarius and more I forgot to list 😄 
+
+Contains work licensed GPL-2.0-or-later, MIT and others.
 
 ## Dependencies
 
