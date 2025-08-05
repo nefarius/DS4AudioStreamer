@@ -26,7 +26,7 @@ public class SbcAudioStream : IDisposable
     private readonly IntPtr _resamplerState;
     private readonly byte[] _sbcPostBuffer;
     private readonly byte[] _sbcPreBuffer;
-
+    
     public SbcAudioStream()
     {
         // Encoder
@@ -43,7 +43,10 @@ public class SbcAudioStream : IDisposable
         _sbcPostBuffer = new byte[_encoder.FrameSize];
 
         // Capture Device
-        _captureDevice = new MyLoopbackCapture(0);
+        var device = new MMDeviceEnumerator()
+            .GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+
+        _captureDevice = new WasapiLoopbackCapture(device);
         _captureDevice.DataAvailable += CaptureDeviceOnDataAvailable;
 
         // Buffers
@@ -70,6 +73,8 @@ public class SbcAudioStream : IDisposable
 
     public void Dispose()
     {
+        GC.SuppressFinalize(this);
+        
         _captureDevice.Dispose();
         _encoder.Dispose();
     }
