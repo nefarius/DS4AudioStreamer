@@ -1,9 +1,11 @@
 ﻿using DS4AudioStreamer;
 using DS4AudioStreamer.Sound;
 
-var hidDevices = DeviceEnumerator.FindDevices();
+using DS4Windows;
 
-var usedDevice = hidDevices.FirstOrDefault();
+List<HidDevice> hidDevices = DeviceEnumerator.FindDevices();
+
+using HidDevice? usedDevice = hidDevices.FirstOrDefault();
 
 if (null == usedDevice)
 {
@@ -11,7 +13,7 @@ if (null == usedDevice)
     return;
 }
 
-usedDevice.OpenDevice(true);
+usedDevice.OpenDevice(false);
 
 if (!usedDevice.IsOpen)
 {
@@ -19,10 +21,21 @@ if (!usedDevice.IsOpen)
     usedDevice.OpenDevice(false);
 }
 
-var captureWorker = new NewCaptureWorker(usedDevice);
+using NewCaptureWorker captureWorker = new NewCaptureWorker(usedDevice);
 captureWorker.Start();
 
 while (usedDevice.IsConnected)
 {
-    Thread.Sleep(1000);
+    if (Console.KeyAvailable)
+    {
+        var key = Console.ReadKey(intercept: true);
+        if (key.Key == ConsoleKey.Escape)
+        {
+            Console.WriteLine("ESC pressed, exiting...");
+            break;
+        }
+    }
+    
+    Thread.Sleep(200);
 }
+
