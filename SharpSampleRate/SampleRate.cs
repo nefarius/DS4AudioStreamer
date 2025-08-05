@@ -23,7 +23,7 @@ namespace SharpSampleRate
             SRC_LINEAR = 4
         }
 
-        private const string NativeLibName = "libs/libsamplerate-0.dll";
+        private const string NativeLibName = "libs/samplerate.dll";
 
         [DllImport(NativeLibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern SRC_STATE_PTR src_new(Quality converter_type, int channels, out int error);
