@@ -13,11 +13,11 @@ if (null == usedDevice)
     return;
 }
 
-usedDevice.OpenDevice(false);
+usedDevice.OpenDevice(true);
 
 if (!usedDevice.IsOpen)
 {
-    Console.WriteLine("Could not open device exclusively :(");
+    Console.WriteLine("Could not open device exclusively :( opening in shared mode");
     usedDevice.OpenDevice(false);
 }
 
