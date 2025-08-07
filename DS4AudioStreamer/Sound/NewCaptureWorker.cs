@@ -34,6 +34,8 @@ public class NewCaptureWorker : IDisposable
         ReadOnlySpan<byte> btHeaderSpan = new ReadOnlySpan<byte>(&btHeader, 1);
         ushort lilEndianCounter = 0;
 
+        return;
+        
         while (true)
         {
             CircularBuffer<byte> data = _stream.SbcAudioData;
@@ -65,8 +67,8 @@ public class NewCaptureWorker : IDisposable
                 _outputBuffer[3] = (byte)(lilEndianCounter & 0xFF);
                 _outputBuffer[4] = (byte)((lilEndianCounter >> 8) & 0xFF);
 
-                // _outputBuffer[5] = 0x02; // 0x02 Speaker Mode On / 0x24 Headset Mode On
-                _outputBuffer[5] = 0x24; // 0x02 Speaker Mode On / 0x24 Headset Mode On
+                 _outputBuffer[5] = 0x02; // 0x02 Speaker Mode On / 0x24 Headset Mode On
+                //_outputBuffer[5] = 0x24; // 0x02 Speaker Mode On / 0x24 Headset Mode On
 
                 lilEndianCounter += (ushort)framesAvailable;
 
