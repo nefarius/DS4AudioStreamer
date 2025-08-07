@@ -10,8 +10,8 @@
 
     <ItemGroup>
       <PackageReference Include="FFT.CRC" Version="0.0.18" />
-      <PackageReference Include="NAudio" Version="2.1.0" />
-      <PackageReference Include="NAudio.Wasapi" Version="2.1.0" />
+      <PackageReference Include="NAudio" Version="2.2.1" />
+      <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
     </ItemGroup>
 
     <ItemGroup>
