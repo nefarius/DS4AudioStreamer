@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading.Channels;
 
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
@@ -30,6 +31,12 @@ public class SbcAudioStream : IDisposable
     private readonly byte[] _sbcPreBuffer;
     private byte[] _resampledAudioBuffer;
 
+    // new stuff below
+    
+    private const int CaptureBufferMilliseconds = 10;
+    private const int CaptureBufferMaxCapacity = 5;
+    private Channel<WaveInEventArgs> _captureBuffer;
+
     public SbcAudioStream()
     {
         // Encoder
@@ -48,9 +55,18 @@ public class SbcAudioStream : IDisposable
         // Capture Device
         MMDevice? device = new MMDeviceEnumerator()
             .GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-
-        _captureDevice = new WasapiLoopbackCapture(device);
+        
+        _captureDevice = new BufferedLoopbackCapture(device, CaptureBufferMilliseconds);
         _captureDevice.DataAvailable += CaptureDeviceOnDataAvailable;
+        
+        _captureBuffer = Channel.CreateBounded<WaveInEventArgs>(
+            new BoundedChannelOptions(CaptureBufferMaxCapacity)
+            {
+                SingleReader = true,
+                SingleWriter = true,
+                AllowSynchronousContinuations = true,
+                FullMode = BoundedChannelFullMode.Wait
+            });
 
         // Resampler
         _resamplerState = src_new(Quality.SRC_SINC_BEST_QUALITY, CHANNEL_COUNT, out int error);
@@ -108,6 +124,13 @@ public class SbcAudioStream : IDisposable
 
     private unsafe void CaptureDeviceOnDataAvailable(object? sender, WaveInEventArgs e)
     {
+        if (!_captureBuffer.Writer.TryWrite(e))
+        {
+            Debug.WriteLine("Capture buffer full, dropping data");
+        }
+        
+        return;
+        
         try
         {
             WasapiCapture? device = sender as WasapiCapture;
