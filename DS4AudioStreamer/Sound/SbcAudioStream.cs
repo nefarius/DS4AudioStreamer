@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 using NAudio.CoreAudioApi;
@@ -112,8 +113,10 @@ public class SbcAudioStream : IDisposable
             WasapiCapture? device = sender as WasapiCapture;
             ArgumentNullException.ThrowIfNull(device);
             int sampleFrames = e.GetSampleFrameCount(device);
+            Debug.WriteLine($"Sample frames captured: {sampleFrames}");
             // equal if recording sample rate matches the target rate
             int totalSamples = sampleFrames * CHANNEL_COUNT;
+            Debug.WriteLine($"Total samples captured: {totalSamples}");
 
             if (_resampledAudioBuffer.Length < totalSamples * sizeof(float))
             {
@@ -144,7 +147,7 @@ public class SbcAudioStream : IDisposable
 
                     if (convert.input_frames != convert.input_frames_used)
                     {
-                        Console.WriteLine("Not all frames used (?)");
+                        Debug.WriteLine("Not all frames used (?)");
                     }
 
                     totalSamples = convert.output_frames_gen * CHANNEL_COUNT;
@@ -156,7 +159,7 @@ public class SbcAudioStream : IDisposable
                 }
             }
             
-            Console.WriteLine($"Converted samples: {totalSamples}");
+            Debug.WriteLine($"Total samples converted: {totalSamples}");
             // TODO: buffer sizes bugged!
             return;
 
@@ -170,7 +173,7 @@ public class SbcAudioStream : IDisposable
 
                 if (length == 0)
                 {
-                    Console.WriteLine("Not encoded");
+                    Debug.WriteLine("Not encoded");
                 }
                 else
                 {
@@ -180,7 +183,7 @@ public class SbcAudioStream : IDisposable
         }
         catch (Exception exception)
         {
-            Console.WriteLine("Exception: {0}", exception);
+            Debug.WriteLine("Exception: {0}", exception);
         }
     }
 }
