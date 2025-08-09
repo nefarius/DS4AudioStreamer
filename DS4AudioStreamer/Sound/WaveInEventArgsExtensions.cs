@@ -5,7 +5,7 @@ namespace DS4AudioStreamer.Sound;
 
 public static class WaveInEventArgsExtensions
 {
-    public static int GetSampleFrameCount(this WaveInEventArgs args, WasapiCapture device)
+    public static int GetNumFrames(this WaveInEventArgs args, WasapiCapture device)
     {
         return args.BytesRecorded / device.WaveFormat.BlockAlign;
     }

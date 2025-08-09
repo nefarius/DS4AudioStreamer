@@ -1,9 +1,11 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 using static SharpSBC.Native;
 
 namespace SharpSBC;
 
+[SuppressMessage("ReSharper", "UnusedMember.Global")]
 public class SbcEncoder : IDisposable
 {
     private sbc_t _sbc;
@@ -49,7 +51,14 @@ public class SbcEncoder : IDisposable
         FrameSize = sbc_get_frame_length(ref _sbc);
     }
 
+    /// <summary>
+    ///     SBC input block size in bytes.
+    /// </summary>
     public ulong CodeSize { get; }
+    
+    /// <summary>
+    ///     SBC output block (frame) size in bytes.
+    /// </summary>
     public ulong FrameSize { get; }
 
     public void Dispose()
@@ -64,12 +73,23 @@ public class SbcEncoder : IDisposable
 
         unsafe
         {
-            fixed (byte* psrc = src)
-            fixed (byte* pdst = dst)
+            fixed (byte* pSrc = src)
+            fixed (byte* pDst = dst)
             {
-                len = sbc_encode(ref _sbc, psrc, CodeSize, pdst, dstSize, &tmp);
+                len = Encode(pSrc, pDst, dstSize, out tmp);
             }
         }
+
+        encoded = tmp;
+
+        return len;
+    }
+
+    public unsafe long Encode(byte* src, byte* dst, ulong dstSize, out ulong encoded)
+    {
+        ulong tmp;
+
+        long len = sbc_encode(ref _sbc, src, CodeSize, dst, dstSize, &tmp);
 
         encoded = tmp;
 
