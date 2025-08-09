@@ -3,7 +3,7 @@ namespace DS4AudioStreamer.Sound;
 public class CircularBuffer<T> where T : unmanaged
 {
     private readonly T[] _backingBuffer;
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     private int _end;
 
     private bool _hasData;
