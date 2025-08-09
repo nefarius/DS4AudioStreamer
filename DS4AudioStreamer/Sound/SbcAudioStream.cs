@@ -15,24 +15,26 @@ namespace DS4AudioStreamer.Sound;
 public class SbcAudioStream : IDisposable
 {
     // target sample rate
-    private const int STREAM_SAMPLE_RATE = 32000;
+    private const int SbcSampleRate = 32_000;
 
     // target channel count for speaker or headset (stereo)
-    private const int CHANNEL_COUNT = 2;
+    private const int SbcChannelCount = 2;
 
     private const int CaptureBufferMilliseconds = 100;
 
     private readonly WasapiCapture _captureDevice;
-    private readonly byte[] _dstSbcBlock;
     private readonly SbcEncoder _encoder;
     private readonly double _resampleRatio;
     private readonly IntPtr _resamplerState;
+    private readonly byte[] _sbcPostBuffer;
+    private readonly byte[] _sbcPreBuffer;
+    private readonly CircularBuffer<byte> _sourceAudioBuffer;
 
     public SbcAudioStream()
     {
         // SBC Encoder setting compatible with DS4 variants
         _encoder = new SbcEncoder(
-            STREAM_SAMPLE_RATE,
+            SbcSampleRate,
             SubBandCount.Sb8,
             48,
             ChannelMode.JointStereo,
@@ -40,7 +42,8 @@ public class SbcAudioStream : IDisposable
             BlockCount.Blk16
         );
 
-        _dstSbcBlock = new byte[_encoder.CodeSize];
+        _sbcPreBuffer = new byte[_encoder.CodeSize];
+        _sbcPostBuffer = new byte[_encoder.FrameSize];
 
         // Capture Device (default output device)
         MMDevice? device = new MMDeviceEnumerator()
@@ -52,13 +55,13 @@ public class SbcAudioStream : IDisposable
         _captureDevice.DataAvailable += OnAudioCaptured;
 
         // Resampler
-        _resamplerState = src_new(Quality.SRC_SINC_BEST_QUALITY, CHANNEL_COUNT, out int error);
+        _resamplerState = src_new(Quality.SRC_SINC_BEST_QUALITY, SbcChannelCount, out int error);
         if (IntPtr.Zero == _resamplerState)
         {
             throw new Exception(src_strerror(error));
         }
 
-        _resampleRatio = STREAM_SAMPLE_RATE / (double)_captureDevice.WaveFormat.SampleRate;
+        _resampleRatio = SbcSampleRate / (double)_captureDevice.WaveFormat.SampleRate;
 
         // Buffers
         int bufferSize = _captureDevice.WaveFormat.ConvertLatencyToByteSize(32);
@@ -66,6 +69,7 @@ public class SbcAudioStream : IDisposable
         Console.WriteLine($"SBC Buffer size: {bufferSize}");
 
         // TODO: fix size calculation
+        _sourceAudioBuffer = new CircularBuffer<byte>(bufferSize);
         SbcAudioData = new CircularBuffer<byte>(bufferSize);
     }
 
@@ -116,6 +120,7 @@ public class SbcAudioStream : IDisposable
     /// <remarks>
     ///     This is expected to be invoked roughly every 10 milliseconds with a fixed buffer size,
     ///     except for silence.
+    ///     Behavior might change if a different capture device is used.
     /// </remarks>
     private unsafe void OnAudioCaptured(object? sender, WaveInEventArgs e)
     {
@@ -125,15 +130,15 @@ public class SbcAudioStream : IDisposable
 
         // smaller when downsampling, larger when upsampling
         int outFrameCount = (int)Math.Ceiling(inFrameCount * _resampleRatio);
-        int inSamples = inFrameCount * CHANNEL_COUNT;
-        int outSamples = outFrameCount * CHANNEL_COUNT;
+        int inSamples = inFrameCount * SbcChannelCount;
+        int outSamples = outFrameCount * SbcChannelCount;
 
         short* finalShortFormat = stackalloc short[outSamples];
-        int finalBufferBytes = outSamples * sizeof(short);
+        int finalSampleCount = 0;
 
         fixed (float* pBuffer = MemoryMarshal.Cast<byte, float>(e.Buffer))
         {
-            if (STREAM_SAMPLE_RATE != _captureDevice.WaveFormat.SampleRate)
+            if (SbcSampleRate != _captureDevice.WaveFormat.SampleRate)
             {
                 // resample and convert
                 float* dataIn = stackalloc float[inSamples];
@@ -169,41 +174,42 @@ public class SbcAudioStream : IDisposable
                     Debug.WriteLine("Not all frames used (?)");
                 }
 
-                int convertedSamples = convert.output_frames_gen * CHANNEL_COUNT;
+                int convertedSamples = convert.output_frames_gen * SbcChannelCount;
                 src_float_to_short_array(dataOut, finalShortFormat, convertedSamples);
+                finalSampleCount = convertedSamples;
             }
             else
             {
                 // convert only
                 src_float_to_short_array(pBuffer, finalShortFormat, inSamples);
+                finalSampleCount = inSamples;
             }
         }
 
-        ulong remainingBytes = (ulong)finalBufferBytes;
+        Span<short> shortSpan = new(finalShortFormat, outSamples);
+        Span<byte> byteSpan = MemoryMarshal.AsBytes(shortSpan);
 
-        // SBC encoding loop
-        while (remainingBytes > 0)
+        // managed instance of our resampled and converted audio stream
+        _sourceAudioBuffer.CopyFrom(byteSpan.ToArray(), finalSampleCount * sizeof(short));
+
+        // SBC encoding - we must have enough samples buffered to fill at least one block
+        while (_sourceAudioBuffer.CurrentLength >= (int)_encoder.CodeSize)
         {
-            ulong inBlockSizeBytes = Math.Min(remainingBytes, _encoder.CodeSize);
-            ulong startOffsetBytes = (ulong)finalBufferBytes - remainingBytes;
-            byte* srcBlock = (byte*)finalShortFormat + (int)startOffsetBytes;
+            // pop block from ring buffer
+            _sourceAudioBuffer.CopyTo(_sbcPreBuffer, (int)_encoder.CodeSize);
 
-            fixed (byte* pDstSbcBlock = _dstSbcBlock)
+            _encoder.Encode(_sbcPreBuffer, _sbcPostBuffer, _encoder.CodeSize, out ulong length);
+
+            if (length == 0)
             {
-                _encoder.Encode(srcBlock, pDstSbcBlock, inBlockSizeBytes, out ulong sbcEncodedBytes);
-
-                if (sbcEncodedBytes == 0)
-                {
-                    Debug.WriteLine("Not encoded");
-                }
-                else
-                {
-                    // write the new encoded block at the end of the ring buffer
-                    SbcAudioData.CopyFrom(_dstSbcBlock, (int)sbcEncodedBytes);
-                }
+                // TODO: error handling
+                Console.WriteLine("Not encoded");
             }
-
-            remainingBytes -= inBlockSizeBytes;
+            else
+            {
+                // push frame to final buffer
+                SbcAudioData.CopyFrom(_sbcPostBuffer, (int)length);
+            }
         }
     }
 }

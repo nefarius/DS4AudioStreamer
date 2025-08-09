@@ -21,21 +21,20 @@ if (!usedDevice.IsOpen)
     usedDevice.OpenDevice(false);
 }
 
-using NewCaptureWorker captureWorker = new NewCaptureWorker(usedDevice);
+using NewCaptureWorker captureWorker = new(usedDevice);
 captureWorker.Start();
 
 while (usedDevice.IsConnected)
 {
     if (Console.KeyAvailable)
     {
-        var key = Console.ReadKey(intercept: true);
+        ConsoleKeyInfo key = Console.ReadKey(true);
         if (key.Key == ConsoleKey.Escape)
         {
             Console.WriteLine("ESC pressed, exiting...");
             break;
         }
     }
-    
+
     Thread.Sleep(200);
 }
-
