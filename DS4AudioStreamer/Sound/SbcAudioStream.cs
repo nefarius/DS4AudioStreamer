@@ -139,7 +139,13 @@ public class SbcAudioStream : IDisposable
                 float* dataIn = stackalloc float[inSamples];
                 float* dataOut = stackalloc float[outSamples];
 
-                Buffer.MemoryCopy(pBuffer, dataIn, inSamples * sizeof(float), inSamples * sizeof(float));
+                // copy so both (in and out) memory regions are on the stack
+                Buffer.MemoryCopy(
+                    pBuffer,
+                    dataIn,
+                    inSamples * sizeof(float),
+                    inSamples * sizeof(float)
+                );
 
                 SRC_DATA convert = new()
                 {
