@@ -47,7 +47,7 @@ public class SbcAudioStream : IDisposable
             .GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
 
         Console.WriteLine($"Default output device: {device.FriendlyName}");
-        
+
         _captureDevice = new BufferedLoopbackCapture(device, CaptureBufferMilliseconds);
         _captureDevice.DataAvailable += OnAudioCaptured;
 
@@ -113,6 +113,10 @@ public class SbcAudioStream : IDisposable
     /// <summary>
     ///     Invoked when PCM captured data is available for processing.
     /// </summary>
+    /// <remarks>
+    ///     This is expected to be invoked roughly every 10 milliseconds with a fixed buffer size,
+    ///     except for silence.
+    /// </remarks>
     private unsafe void OnAudioCaptured(object? sender, WaveInEventArgs e)
     {
         WasapiCapture? device = sender as WasapiCapture;
