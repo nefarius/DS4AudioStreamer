@@ -33,9 +33,11 @@ public class SbcAudioStream : IDisposable
 
     // new stuff below
     
-    private const int CaptureBufferMilliseconds = 10;
+    private const int CaptureBufferMilliseconds = 30;
     private const int CaptureBufferMaxCapacity = 5;
     private Channel<WaveInEventArgs> _captureBuffer;
+    private Task _resamplingTask;
+    private CancellationTokenSource _cts;
 
     public SbcAudioStream()
     {
@@ -57,7 +59,13 @@ public class SbcAudioStream : IDisposable
             .GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
         
         _captureDevice = new BufferedLoopbackCapture(device, CaptureBufferMilliseconds);
-        _captureDevice.DataAvailable += CaptureDeviceOnDataAvailable;
+        _captureDevice.DataAvailable += OnAudioCaptured;
+        //_captureDevice.DataAvailable += CaptureDeviceOnDataAvailable;
+        
+        Console.WriteLine(_captureDevice.WaveFormat);
+        
+        long maxBufferSize = _captureDevice.WaveFormat.GetMaxBufferSize(CaptureBufferMilliseconds);
+        Console.WriteLine($"Max expected buffer size: {maxBufferSize} bytes for {CaptureBufferMilliseconds} ms");
         
         _captureBuffer = Channel.CreateBounded<WaveInEventArgs>(
             new BoundedChannelOptions(CaptureBufferMaxCapacity)
@@ -77,7 +85,8 @@ public class SbcAudioStream : IDisposable
         }
 
         // Buffers
-        int bufferSize = _captureDevice.WaveFormat.ConvertLatencyToByteSize(32);
+        int bufferSize = _captureDevice.WaveFormat.ConvertLatencyToByteSize(CaptureBufferMilliseconds);
+        Console.WriteLine($"Buffer size: {bufferSize} bytes for {CaptureBufferMilliseconds} ms");
         // Assume max input frame count from WASAPI
         int frameCount = bufferSize / _captureDevice.WaveFormat.BlockAlign;
         // Worst-case: output may require more space due to upsampling
@@ -88,7 +97,26 @@ public class SbcAudioStream : IDisposable
         _audioData = new CircularBuffer<byte>(maxOutputFrames * CHANNEL_COUNT * sizeof(short));
         
         SbcAudioData = new CircularBuffer<byte>(bufferSize);
+        
+        _cts = new CancellationTokenSource();
+        
+        _resamplingTask = Task.Factory.StartNew(
+            async () => await ResampleAsync(),
+            CancellationToken.None,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default
+        ).Unwrap();
     }
+
+    private async Task ResampleAsync()
+    {
+        while (!_cts.IsCancellationRequested)
+        {
+            WaveInEventArgs args = await _captureBuffer.Reader.ReadAsync(_cts.Token);
+
+            Debug.WriteLine($"Bytes recorded: {args.BytesRecorded} bytes");
+        }
+    }   
 
     public CircularBuffer<byte> SbcAudioData { get; }
 
@@ -100,6 +128,8 @@ public class SbcAudioStream : IDisposable
     {
         GC.SuppressFinalize(this);
 
+        _cts.Cancel();
+        _cts.Dispose();
         _captureDevice.Dispose();
         _encoder.Dispose();
     }
@@ -122,14 +152,17 @@ public class SbcAudioStream : IDisposable
         _captureDevice.StopRecording();
     }
 
+    private unsafe void OnAudioCaptured(object? sender, WaveInEventArgs e)
+    {
+        
+    }
+    
     private unsafe void CaptureDeviceOnDataAvailable(object? sender, WaveInEventArgs e)
     {
-        if (!_captureBuffer.Writer.TryWrite(e))
+        /*if (!_captureBuffer.Writer.TryWrite(e))
         {
             Debug.WriteLine("Capture buffer full, dropping data");
-        }
-        
-        return;
+        }*/
         
         try
         {
