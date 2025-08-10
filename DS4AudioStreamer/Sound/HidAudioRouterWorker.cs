@@ -85,7 +85,7 @@ public class HidAudioRouterWorker : IDisposable
 
                 uint crc = CRC32Calculator.SEED;
                 CRC32Calculator.Add(ref crc, btHeaderSpan);
-                CRC32Calculator.Add(ref crc, new ReadOnlySpan<byte>(_outputBuffer, 0, size - 4));
+                CRC32Calculator.Add(ref crc, _outputBuffer.AsSpan(0, size - 4));
                 crc = CRC32Calculator.Finalize(crc);
 
                 // splice CRC into packet
