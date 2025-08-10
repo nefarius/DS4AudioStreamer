@@ -8,9 +8,9 @@ as a good enough example of how good it can work.
 
 ## Credits
 
-Built on the work of @asimonf, @Nielk1, @nefarius and more I forgot to list 😄 
+Built on the work of @asimonf, @Nielk1, @Ryochan7, @schmaldeo, @nefarius and those I forgot to list 😄
 
-Contains work licensed GPL-2.0-or-later, MIT and others.
+Contains work licensed GPL-2.0-or-later, MIT, BSD-2-Clause and others.
 
 ## Dependencies
 
