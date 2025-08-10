@@ -12,6 +12,10 @@ using ChannelMode = SharpSBC.ChannelMode;
 
 namespace DS4AudioStreamer.Sound;
 
+/// <summary>
+///     Represents a stream of SBC (Low Complexity Subband Codec) encoded audio data, specifically tailored for use with
+///     DS4-compatible devices.
+/// </summary>
 public class SbcAudioStream : IDisposable
 {
     // target sample rate
@@ -30,6 +34,10 @@ public class SbcAudioStream : IDisposable
     private readonly byte[] _sbcPreBuffer;
     private readonly CircularBuffer<byte> _sourceAudioBuffer;
 
+    /// <summary>
+    ///     Represents an audio stream using SBC (Subband Coding) encoding and captures audio data from a WASAPI capture
+    ///     device.
+    /// </summary>
     public SbcAudioStream()
     {
         // SBC Encoder setting compatible with DS4 variants
@@ -102,14 +110,6 @@ public class SbcAudioStream : IDisposable
         _captureDevice.StartRecording();
     }
 
-    public void WaitUntil(int frameCount)
-    {
-        while (SbcAudioData.CurrentLength < frameCount * FrameSize)
-        {
-            Thread.Yield();
-        }
-    }
-
     public void Stop()
     {
         _captureDevice.StopRecording();
@@ -168,7 +168,7 @@ public class SbcAudioStream : IDisposable
                 {
                     throw new Exception(src_strerror(res));
                 }
-                
+
                 // plausibility check
                 if (convert.input_frames != convert.input_frames_used)
                 {
