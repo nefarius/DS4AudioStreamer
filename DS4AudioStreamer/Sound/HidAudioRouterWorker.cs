@@ -113,7 +113,7 @@ public class HidAudioRouterWorker : IDisposable
                 _hidDevice.WriteOutputReportViaInterrupt(_outputBuffer.AsSpan()[..size]);
             }
         }
-        
+
         _stream.SbcAudioFramesAvailable -= OnSbcAudioFramesAvailable;
         return;
 
@@ -138,18 +138,24 @@ public class HidAudioRouterWorker : IDisposable
 
     #region Tuning
 
-    /// Represents the minimum number of buffered SBC audio frames required
-    /// to proceed with audio processing or transmission.
-    /// This constant is used within the HidAudioRouterWorker class to ensure
-    /// that a sufficient number of audio frames are available in the buffer
-    /// before further processing or transmission is initiated. It helps achieve
-    /// stability and prevents underflow scenarios when working with audio data.
+    /// <summary>
+    ///     Represents the minimum number of buffered SBC audio frames required
+    ///     to proceed with audio processing or transmission.
+    ///     This constant is used within the HidAudioRouterWorker class to ensure
+    ///     that a sufficient number of audio frames are available in the buffer
+    ///     before further processing or transmission is initiated. It helps achieve
+    ///     stability and prevents underflow scenarios when working with audio data.
+    /// </summary>
+    /// <remarks>Lowering this value can reduce latency but increases the risk of buffer underruns.</remarks>
     private const int MinBufferedFramesRequired = 4;
 
-    /// Specifies the maximum time, in milliseconds, to wait for the availability of SBC audio frames
-    /// before continuing processing in the HID audio routing worker loop.
-    /// This constant ensures efficient synchronization and prevents excessive CPU usage
-    /// by limiting the duration of the wait interval when listening for available audio frames.
+    /// <summary>
+    ///     Specifies the maximum time, in milliseconds, to wait for the availability of SBC audio frames
+    ///     before continuing processing in the HID audio routing worker loop.
+    ///     This constant ensures efficient synchronization and prevents excessive CPU usage
+    ///     by limiting the duration of the wait interval when listening for available audio frames.
+    /// </summary>
+    /// <remarks>This is not a critical value; however, CPU usage will increase if set too low.</remarks>
     private const int MaxFramesAvailableWaitMilliseconds = 20;
 
     #endregion
