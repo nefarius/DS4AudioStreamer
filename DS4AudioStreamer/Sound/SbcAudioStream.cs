@@ -25,6 +25,10 @@ public class SbcAudioStream : IDisposable
     private const int SbcChannelCount = 2;
 
     // TODO: in my testing, lowering this doesn't do anything; NAudio or WASAPI weirdness?
+    // > If the client requests a buffer size that is smaller than the audio engine's minimum required buffer size,
+    // > the method sets the buffer size to this minimum buffer size rather than to the buffer size requested by the
+    // > client.
+    // source: https://learn.microsoft.com/en-us/windows/win32/api/audioclient/nf-audioclient-iaudioclient-initialize#remarks
     private const int CaptureBufferMilliseconds = 100;
 
     private readonly WasapiCapture _captureDevice;
