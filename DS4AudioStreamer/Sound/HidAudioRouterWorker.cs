@@ -22,6 +22,7 @@ public class HidAudioRouterWorker : IDisposable
 
         ArgumentNullException.ThrowIfNull(hidDevice.SafeReadHandle);
 
+        // TODO: this does nothing depending on which WinAPI we use on the device
         NativeMethods.HidD_SetNumInputBuffers(hidDevice.SafeReadHandle.DangerousGetHandle(), 2);
 
         _stream = new SbcAudioStream();
@@ -75,6 +76,9 @@ public class HidAudioRouterWorker : IDisposable
                 _outputBuffer[3] = (byte)(lilEndianCounter & 0xFF);
                 _outputBuffer[4] = (byte)((lilEndianCounter >> 8) & 0xFF);
 
+                // TODO: setting volume happens in a different report,
+                // which we do not currently implement in this demo loop
+                
                 _outputBuffer[5] = 0x02; // 0x02 Speaker Mode On / 0x24 Headset Mode On
                 //_outputBuffer[5] = 0x24; // 0x02 Speaker Mode On / 0x24 Headset Mode On
 
@@ -83,6 +87,7 @@ public class HidAudioRouterWorker : IDisposable
                 // splice audio data into packet
                 audioData.CopyTo(_outputBuffer, 6, framesAvailable * frameSize);
 
+                // controller ignores packets without the proper checksum
                 uint crc = CRC32Calculator.SEED;
                 CRC32Calculator.Add(ref crc, btHeaderSpan);
                 CRC32Calculator.Add(ref crc, _outputBuffer.AsSpan(0, size - 4));

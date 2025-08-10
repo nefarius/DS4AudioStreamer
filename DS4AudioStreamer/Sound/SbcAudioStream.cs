@@ -24,6 +24,7 @@ public class SbcAudioStream : IDisposable
     // target channel count for speaker or headset (stereo)
     private const int SbcChannelCount = 2;
 
+    // TODO: in my testing, lowering this doesn't do anything; NAudio or WASAPI weirdness?
     private const int CaptureBufferMilliseconds = 100;
 
     private readonly WasapiCapture _captureDevice;
