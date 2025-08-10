@@ -8,6 +8,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DS4AudioStreamer.Sound;
 
+/// <summary>
+///     A thread-safe circular (ring) buffer implementation.
+/// </summary>
+/// <typeparam name="T">The type of each contained item.</typeparam>
 public class CircularBuffer<T> where T : unmanaged
 {
     private readonly T[] _backingBuffer;
@@ -124,6 +128,7 @@ public class CircularBuffer<T> where T : unmanaged
             {
                 _hasData = false;
                 Array.Fill(destination, new T(), length + offset, zeroFill);
+                // TODO: ???
                 Console.WriteLine("Glitch");
             }
             else if (_start == _end)
