@@ -9,7 +9,7 @@ namespace DS4AudioStreamer.Sound;
 /// </summary>
 /// <remarks>https://learn.microsoft.com/en-us/windows/win32/coreaudio/loopback-recording</remarks>
 public class BufferedLoopbackCapture(MMDevice captureDevice)
-    : WasapiCapture(captureDevice, true, 0)
+    : WasapiCapture(captureDevice, true, 0 /* use the minimum size required by the audio engine */)
 {
     /// <summary>Specify loopback</summary>
     protected override AudioClientStreamFlags GetAudioClientStreamFlags()
