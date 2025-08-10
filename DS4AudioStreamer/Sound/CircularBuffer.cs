@@ -9,9 +9,21 @@ using System.Diagnostics.CodeAnalysis;
 namespace DS4AudioStreamer.Sound;
 
 /// <summary>
-///     A thread-safe circular (ring) buffer implementation.
+///     A thread-safe circular (ring) buffer for unmanaged value types.
 /// </summary>
-/// <typeparam name="T">The type of each contained item.</typeparam>
+/// <typeparam name="T">
+///     The element type stored in the buffer. Must be an unmanaged type
+///     (e.g., primitive numeric type, struct without managed references).
+/// </typeparam>
+/// <remarks>
+///     <para>
+///         The buffer behaves as a fixed-size FIFO queue. When new data exceeds
+///         <see cref="Capacity" />, the oldest data is overwritten automatically.
+///     </para>
+///     <para>
+///         All operations are thread-safe via an internal lock.
+///     </para>
+/// </remarks>
 public class CircularBuffer<T> where T : unmanaged
 {
     private readonly T[] _backingBuffer;
@@ -23,9 +35,13 @@ public class CircularBuffer<T> where T : unmanaged
     private int _start;
 
     /// <summary>
-    ///     Creates a circular buffer
+    ///     Initializes a new instance of the <see cref="CircularBuffer{T}" /> class
+    ///     with the specified capacity.
     /// </summary>
-    /// <param name="size">Size of the buffer in number of <see cref="T"/>s.</param>
+    /// <param name="size">
+    ///     The number of <typeparamref name="T" /> elements that the buffer can hold.
+    ///     This is the maximum number of elements that can be stored without overwriting.
+    /// </param>
     public CircularBuffer(int size)
     {
         _backingBuffer = new T[size];
@@ -33,9 +49,21 @@ public class CircularBuffer<T> where T : unmanaged
         _end = 0;
     }
 
+    /// <summary>
+    ///     Gets the maximum number of elements that the buffer can hold.
+    /// </summary>
+    /// <remarks>
+    ///     The size in bytes is <c>Capacity * sizeof(T)</c>.
+    /// </remarks>
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public int Capacity => _backingBuffer.Length;
 
+    /// <summary>
+    ///     Gets the current number of elements stored in the buffer.
+    /// </summary>
+    /// <remarks>
+    ///     The size in bytes is <c>CurrentLength * sizeof(T)</c>.
+    /// </remarks>
     public int CurrentLength
     {
         get
@@ -57,6 +85,26 @@ public class CircularBuffer<T> where T : unmanaged
         }
     }
 
+    /// <summary>
+    ///     Copies elements from a source array into the buffer, overwriting the
+    ///     oldest data if necessary.
+    /// </summary>
+    /// <param name="arr">
+    ///     The source array containing the elements to write.
+    /// </param>
+    /// <param name="length">
+    ///     The number of elements from <paramref name="arr" /> to write into the buffer.
+    ///     Must be less than or equal to <paramref name="arr" /> length.
+    /// </param>
+    /// <remarks>
+    ///     <para>
+    ///         If writing <paramref name="length" /> elements would exceed <see cref="Capacity" />,
+    ///         the oldest elements in the buffer are discarded to make room.
+    ///     </para>
+    ///     <para>
+    ///         The operation is thread-safe.
+    ///     </para>
+    /// </remarks>
     public unsafe void CopyFrom(T[] arr, int length)
     {
         lock (_sync)
@@ -89,6 +137,23 @@ public class CircularBuffer<T> where T : unmanaged
         }
     }
 
+    /// <summary>
+    ///     Copies up to <paramref name="length" /> elements from the buffer into
+    ///     <paramref name="destination" /> at the specified offset, removing them
+    ///     from the buffer in the process.
+    /// </summary>
+    /// <param name="destination">The destination array to receive the elements.</param>
+    /// <param name="offset">The index in <paramref name="destination" /> where copying begins.</param>
+    /// <param name="length">The number of elements to copy.</param>
+    /// <remarks>
+    ///     <para>
+    ///         If fewer than <paramref name="length" /> elements are available, the remaining slots
+    ///         in <paramref name="destination" /> are zero-filled (default(<typeparamref name="T" />)).
+    ///     </para>
+    ///     <para>
+    ///         The operation is thread-safe.
+    ///     </para>
+    /// </remarks>
     public unsafe void CopyTo(T[] destination, int offset, int length)
     {
         lock (_sync)
@@ -138,6 +203,21 @@ public class CircularBuffer<T> where T : unmanaged
         }
     }
 
+    /// <summary>
+    ///     Copies up to <paramref name="length" /> elements from the buffer into
+    ///     <paramref name="destination" />, removing them from the buffer in the process.
+    /// </summary>
+    /// <param name="destination">The destination array to receive the elements.</param>
+    /// <param name="length">The number of elements to copy.</param>
+    /// <remarks>
+    ///     <para>
+    ///         If fewer than <paramref name="length" /> elements are available, the remaining slots
+    ///         in <paramref name="destination" /> are zero-filled (default(<typeparamref name="T" />)).
+    ///     </para>
+    ///     <para>
+    ///         The operation is thread-safe.
+    ///     </para>
+    /// </remarks>
     public unsafe void CopyTo(T[] destination, int length)
     {
         lock (_sync)
