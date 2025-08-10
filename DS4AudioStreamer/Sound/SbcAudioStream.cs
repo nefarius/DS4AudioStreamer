@@ -198,7 +198,7 @@ public class SbcAudioStream : IDisposable
         // SBC encoding - we must have enough samples buffered to fill at least one block
         while (_sourceAudioBuffer.CurrentLength >= (int)_encoder.CodeSize)
         {
-            // pop block from ring buffer
+            // pop block from the ring buffer
             _sourceAudioBuffer.CopyTo(_sbcPreBuffer, (int)_encoder.CodeSize);
 
             _encoder.Encode(_sbcPreBuffer, _sbcPostBuffer, _encoder.CodeSize, out ulong length);
