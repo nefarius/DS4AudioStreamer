@@ -15,6 +15,21 @@ public class SbcEncoder : IDisposable
 {
     private sbc_t _sbc;
 
+    /// <summary>
+    ///     Represents an SBC (Low Complexity Subband Codec) encoder for encoding audio data.
+    /// </summary>
+    /// <remarks>
+    ///     This class initializes and configures the SBC encoder with specific parameters such as sample rate,
+    ///     subband count, bit pool size, channel mode, allocation method, and block count. It provides essential
+    ///     data like code size and frame size, which are required for audio encoding.
+    /// </remarks>
+    /// <param name="sampleRate">The sample rate of the audio in Hz (e.g., 16000, 32000, 44100, 48000).</param>
+    /// <param name="subBandsCount">The number of subbands used for audio encoding (4 or 8).</param>
+    /// <param name="bitPool">The bitpool size, which determines audio quality and compression rate.</param>
+    /// <param name="channelMode">The channel mode used for audio encoding, such as Mono or Joint Stereo.</param>
+    /// <param name="snr">The allocation mode, specifying how bits are distributed during encoding (e.g., Loudness or SNR).</param>
+    /// <param name="blocks">The block count, representing the number of blocks used for encoding (4, 8, 12, or 16).</param>
+    /// <exception cref="Exception">Thrown if the SBC encoder cannot initialize properly.</exception>
     public SbcEncoder(
         int sampleRate,
         SubBandCount subBandsCount,
