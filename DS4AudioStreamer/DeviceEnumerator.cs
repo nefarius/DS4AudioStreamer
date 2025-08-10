@@ -8,8 +8,8 @@ internal static class DeviceEnumerator
 
     public static List<HidDevice> FindDevices()
     {
+        // TODO: filter on supported PIDs
         IEnumerable<HidDevice> hDevices = HidDevices.Enumerate(SonyVid);
-        List<HidDevice> tempList = hDevices.ToList();
-        return tempList;
+        return hDevices.ToList();
     }
 }
