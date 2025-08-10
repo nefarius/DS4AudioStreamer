@@ -4,7 +4,7 @@ using FFT.CRC;
 
 namespace DS4AudioStreamer.Sound;
 
-public class NewCaptureWorker : IDisposable
+public class HidAudioRouterWorker : IDisposable
 {
     private readonly HidDevice _hidDevice;
 
@@ -14,7 +14,7 @@ public class NewCaptureWorker : IDisposable
 
     private readonly Thread _workerThread;
 
-    public NewCaptureWorker(
+    public HidAudioRouterWorker(
         HidDevice hidDevice
     )
     {

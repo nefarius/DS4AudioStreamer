@@ -21,7 +21,7 @@ if (!usedDevice.IsOpen)
     usedDevice.OpenDevice(false);
 }
 
-using NewCaptureWorker captureWorker = new(usedDevice);
+using HidAudioRouterWorker captureWorker = new(usedDevice);
 captureWorker.Start();
 
 while (usedDevice.IsConnected)
