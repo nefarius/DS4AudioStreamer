@@ -7,8 +7,9 @@ namespace DS4AudioStreamer.Sound;
 ///     This class captures audio playing through the system's default output device
 ///     while using a buffered mechanism for a specified buffer duration.
 /// </summary>
-public class BufferedLoopbackCapture(MMDevice captureDevice, int audioBufferMillisecondsLength)
-    : WasapiCapture(captureDevice, true, audioBufferMillisecondsLength)
+/// <remarks>https://learn.microsoft.com/en-us/windows/win32/coreaudio/loopback-recording</remarks>
+public class BufferedLoopbackCapture(MMDevice captureDevice)
+    : WasapiCapture(captureDevice, true, 0)
 {
     /// <summary>Specify loopback</summary>
     protected override AudioClientStreamFlags GetAudioClientStreamFlags()
