@@ -6,6 +6,7 @@ namespace DS4AudioStreamer.Sound;
 
 public class HidAudioRouterWorker : IDisposable
 {
+    private readonly CancellationTokenSource _cts = new();
     private readonly HidDevice _hidDevice;
 
     private readonly byte[] _outputBuffer = new byte[640];
@@ -13,7 +14,6 @@ public class HidAudioRouterWorker : IDisposable
     private readonly SbcAudioStream _stream;
 
     private readonly Thread _workerThread;
-    private readonly CancellationTokenSource _cts = new();
 
     public HidAudioRouterWorker(
         HidDevice hidDevice
@@ -46,10 +46,17 @@ public class HidAudioRouterWorker : IDisposable
         byte btHeader = 0xa2;
         ReadOnlySpan<byte> btHeaderSpan = new(&btHeader, 1);
         ushort lilEndianCounter = 0;
+        using AutoResetEvent framesAvailableEvent = new(false);
 
-        // TODO: this is bad for cancellation and CPU burning, improve
+        _stream.SbcAudioFramesAvailable += OnSbcAudioFramesAvailable;
+
         while (!_cts.IsCancellationRequested)
         {
+            if (!framesAvailableEvent.WaitOne(TimeSpan.FromMilliseconds(MaxFramesAvailableWaitMilliseconds)))
+            {
+                continue;
+            }
+
             CircularBuffer<byte> audioData = _stream.SbcAudioData;
             int frameSize = _stream.FrameSize;
 
@@ -82,7 +89,7 @@ public class HidAudioRouterWorker : IDisposable
 
                 // TODO: setting volume happens in a different report,
                 // which we do not currently implement in this demo loop
-                
+
                 _outputBuffer[5] = 0x02; // 0x02 Speaker Mode On / 0x24 Headset Mode On
                 //_outputBuffer[5] = 0x24; // 0x02 Speaker Mode On / 0x24 Headset Mode On
 
@@ -106,6 +113,21 @@ public class HidAudioRouterWorker : IDisposable
                 _hidDevice.WriteOutputReportViaInterrupt(_outputBuffer.AsSpan()[..size]);
             }
         }
+        
+        _stream.SbcAudioFramesAvailable -= OnSbcAudioFramesAvailable;
+        return;
+
+        // event-based waiting for data to go easy on wasting CPU cycles
+        void OnSbcAudioFramesAvailable(object? sender, SbcAudioFramesAvailableEventArgs args)
+        {
+            if (_stream.CurrentFrameCount < MinBufferedFramesRequired)
+            {
+                return;
+            }
+
+            // ReSharper disable once AccessToDisposedClosure
+            framesAvailableEvent.Set();
+        }
     }
 
     public void Start()
@@ -113,4 +135,22 @@ public class HidAudioRouterWorker : IDisposable
         _stream.Start();
         _workerThread.Start();
     }
+
+    #region Tuning
+
+    /// Represents the minimum number of buffered SBC audio frames required
+    /// to proceed with audio processing or transmission.
+    /// This constant is used within the HidAudioRouterWorker class to ensure
+    /// that a sufficient number of audio frames are available in the buffer
+    /// before further processing or transmission is initiated. It helps achieve
+    /// stability and prevents underflow scenarios when working with audio data.
+    private const int MinBufferedFramesRequired = 4;
+
+    /// Specifies the maximum time, in milliseconds, to wait for the availability of SBC audio frames
+    /// before continuing processing in the HID audio routing worker loop.
+    /// This constant ensures efficient synchronization and prevents excessive CPU usage
+    /// by limiting the duration of the wait interval when listening for available audio frames.
+    private const int MaxFramesAvailableWaitMilliseconds = 20;
+
+    #endregion
 }

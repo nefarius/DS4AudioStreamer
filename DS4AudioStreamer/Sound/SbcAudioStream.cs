@@ -12,6 +12,11 @@ using ChannelMode = SharpSBC.ChannelMode;
 
 namespace DS4AudioStreamer.Sound;
 
+public sealed class SbcAudioFramesAvailableEventArgs : EventArgs
+{
+    public required CircularBuffer<byte> Buffer { get; init; }
+}
+
 /// <summary>
 ///     Represents a stream of SBC (Low Complexity Subband Codec) encoded audio data, specifically tailored for use with
 ///     DS4-compatible devices.
@@ -105,6 +110,8 @@ public class SbcAudioStream : IDisposable
         _captureDevice.Dispose();
         _encoder.Dispose();
     }
+
+    public event EventHandler<SbcAudioFramesAvailableEventArgs>? SbcAudioFramesAvailable;
 
     public void Start()
     {
@@ -213,6 +220,11 @@ public class SbcAudioStream : IDisposable
                 // push frame to final buffer
                 SbcAudioData.CopyFrom(_sbcPostBuffer, (int)length);
             }
+        }
+
+        if (CurrentFrameCount > 0)
+        {
+            SbcAudioFramesAvailable?.Invoke(this, new SbcAudioFramesAvailableEventArgs { Buffer = SbcAudioData });
         }
     }
 }
