@@ -198,7 +198,7 @@ public class HidDevice : IDisposable
         return NativeMethods.HidD_SetOutputReport(SafeReadHandle, outputBuffer, outputBuffer.Length);
     }
 
-    public unsafe bool WriteOutputReportViaInterrupt(byte[] outputBuffer, int timeout)
+    public unsafe bool WriteOutputReportViaInterrupt(ReadOnlySpan<byte> outputBuffer)
     {
         SafeReadHandle ??= OpenHandle(DevicePath, true, false);
         using AutoResetEvent wait = new(false);
