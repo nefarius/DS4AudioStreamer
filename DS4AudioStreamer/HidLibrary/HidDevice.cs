@@ -43,8 +43,7 @@ public class HidDevice : IDisposable
         }
         catch (Exception exception)
         {
-            Console.WriteLine(exception.Message);
-            throw new Exception(string.Format("Error querying HID device '{0}'.", devicePath), exception);
+            throw new Exception($"Error querying HID device '{devicePath}'.", exception);
         }
     }
 
@@ -120,17 +119,6 @@ public class HidDevice : IDisposable
         {
             NativeMethods.CancelIoEx(SafeReadHandle.DangerousGetHandle(), IntPtr.Zero);
         }
-    }
-
-    [Obsolete("Unused.")]
-    public bool ReadInputReport(byte[] data)
-    {
-        if (SafeReadHandle == null)
-        {
-            SafeReadHandle = OpenHandle(DevicePath, true, false);
-        }
-
-        return NativeMethods.HidD_GetInputReport(SafeReadHandle, data, data.Length);
     }
 
     public bool WriteFeatureReport(byte[] data)
