@@ -29,9 +29,9 @@ while (usedDevice.IsConnected)
     if (Console.KeyAvailable)
     {
         ConsoleKeyInfo key = Console.ReadKey(true);
-        if (key.Key == ConsoleKey.Escape)
+        if (key.Key == ConsoleKey.F3)
         {
-            Console.WriteLine("ESC pressed, exiting...");
+            Console.WriteLine("F3 pressed, exiting...");
             break;
         }
     }
