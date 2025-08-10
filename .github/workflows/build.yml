@@ -23,4 +23,4 @@ jobs:
         run: dotnet restore
 
       - name: Build
-        run: dotnet build --configuration Release /p:TargetFramework=net9.0-windows /p:TargetPlatformMinVersion=8.0
+        run: dotnet build --configuration Release /p:TargetFramework=net9.0-windows
