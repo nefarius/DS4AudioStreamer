@@ -13,6 +13,7 @@ public class HidAudioRouterWorker : IDisposable
     private readonly SbcAudioStream _stream;
 
     private readonly Thread _workerThread;
+    private readonly CancellationTokenSource _cts = new();
 
     public HidAudioRouterWorker(
         HidDevice hidDevice
@@ -33,6 +34,9 @@ public class HidAudioRouterWorker : IDisposable
     {
         GC.SuppressFinalize(this);
 
+        _cts.Cancel();
+        _workerThread.Join();
+        _cts.Dispose();
         _hidDevice.Dispose();
         _stream.Dispose();
     }
@@ -44,7 +48,7 @@ public class HidAudioRouterWorker : IDisposable
         ushort lilEndianCounter = 0;
 
         // TODO: this is bad for cancellation and CPU burning, improve
-        while (true)
+        while (!_cts.IsCancellationRequested)
         {
             CircularBuffer<byte> audioData = _stream.SbcAudioData;
             int frameSize = _stream.FrameSize;
