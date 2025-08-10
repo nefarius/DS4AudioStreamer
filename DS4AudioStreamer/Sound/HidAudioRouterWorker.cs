@@ -57,13 +57,13 @@ public class HidAudioRouterWorker : IDisposable
                 {
                     framesAvailable = 4;
                     protocol = 0x17;
-                    size = 462;
+                    size = 462; // typically 4 * 109 = 436 bytes of audio
                 }
                 else
                 {
                     framesAvailable = 2;
                     protocol = 0x14;
-                    size = 270;
+                    size = 270; // typically 2 * 109 = 218 bytes of audio
                 }
 
                 Array.Fill<byte>(_outputBuffer, 0);
