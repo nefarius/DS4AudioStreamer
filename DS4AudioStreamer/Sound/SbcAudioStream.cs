@@ -88,6 +88,7 @@ public class SbcAudioStream : IDisposable
     /// </summary>
     public int CurrentFrameCount => SbcAudioData.CurrentLength / FrameSize;
 
+    /// <inheritdoc />
     public void Dispose()
     {
         GC.SuppressFinalize(this);
@@ -167,7 +168,8 @@ public class SbcAudioStream : IDisposable
                 {
                     throw new Exception(src_strerror(res));
                 }
-
+                
+                // plausibility check
                 if (convert.input_frames != convert.input_frames_used)
                 {
                     // TODO: error handling
