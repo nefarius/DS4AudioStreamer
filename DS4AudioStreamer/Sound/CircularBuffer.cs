@@ -1,3 +1,9 @@
+/*
+ * NOTE: I wonder where this implementation is from, it looks a bit like
+ * https://github.com/joaoportela/CircularBuffer-CSharp but not quite.
+ * Ultimately, we want the individual types used to be decoupled for easy reuse, some day :)
+ */
+
 namespace DS4AudioStreamer.Sound;
 
 public class CircularBuffer<T> where T : unmanaged
