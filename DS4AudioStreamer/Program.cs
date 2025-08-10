@@ -17,12 +17,19 @@ usedDevice.OpenDevice(true);
 
 if (!usedDevice.IsOpen)
 {
-    Console.WriteLine("Could not open device exclusively :( opening in shared mode");
+    Console.WriteLine("Could not open HID device exclusively, opening in shared mode");
     usedDevice.OpenDevice(false);
+
+    if (!usedDevice.IsOpen)
+    {
+        throw new InvalidOperationException("Could not open HID device");
+    }
 }
 
 using HidAudioRouterWorker captureWorker = new(usedDevice);
 captureWorker.Start();
+
+Console.WriteLine("Press F3 to exit");
 
 while (usedDevice.IsConnected)
 {
