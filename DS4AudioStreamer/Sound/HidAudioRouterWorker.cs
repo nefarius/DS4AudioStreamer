@@ -118,7 +118,7 @@ public class HidAudioRouterWorker : IDisposable
         return;
 
         // event-based waiting for data to go easy on wasting CPU cycles
-        void OnSbcAudioFramesAvailable(object? sender, SbcAudioFramesAvailableEventArgs args)
+        void OnSbcAudioFramesAvailable(object? sender, EventArgs args)
         {
             if (_stream.CurrentFrameCount < MinBufferedFramesRequired)
             {
