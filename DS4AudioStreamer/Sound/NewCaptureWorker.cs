@@ -22,8 +22,6 @@ public class NewCaptureWorker : IDisposable
     {
         _hidDevice = hidDevice;
 
-        hidDevice.OpenFileStream(_outputBuffer.Length);
-
         ArgumentNullException.ThrowIfNull(hidDevice.SafeReadHandle);
 
         NativeMethods.HidD_SetNumInputBuffers(hidDevice.SafeReadHandle.DangerousGetHandle(), 2);
@@ -98,10 +96,7 @@ public class NewCaptureWorker : IDisposable
                 _outputBuffer[size - 2] = (byte)(crc >> 16);
                 _outputBuffer[size - 1] = (byte)(crc >> 24);
 
-                ArgumentNullException.ThrowIfNull(_hidDevice.FileStream);
-
-                _hidDevice.FileStream.Write(_outputBuffer, 0, size);
-                _hidDevice.FileStream.Flush();
+                _hidDevice.WriteOutputReportViaInterrupt(_outputBuffer.AsSpan().Slice(0, size).ToArray(), 10);
 
                 sw.Stop();
                 Debug.WriteLine($"HID Output Report calculation took {sw.ElapsedMilliseconds} ms");
