@@ -44,9 +44,9 @@ public class NewCaptureWorker : IDisposable
         ReadOnlySpan<byte> btHeaderSpan = new(&btHeader, 1);
         ushort lilEndianCounter = 0;
 
+        // TODO: this is bad for cancellation and CPU burning, improve
         while (true)
         {
-            Stopwatch sw = Stopwatch.StartNew();
             CircularBuffer<byte> audioData = _stream.SbcAudioData;
             int frameSize = _stream.FrameSize;
 
@@ -97,9 +97,6 @@ public class NewCaptureWorker : IDisposable
                 _outputBuffer[size - 1] = (byte)(crc >> 24);
 
                 _hidDevice.WriteOutputReportViaInterrupt(_outputBuffer.AsSpan().Slice(0, size).ToArray(), 10);
-
-                sw.Stop();
-                Debug.WriteLine($"HID Output Report calculation took {sw.ElapsedMilliseconds} ms");
             }
         }
     }
