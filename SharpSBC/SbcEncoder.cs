@@ -5,6 +5,11 @@ using static SharpSBC.Native;
 
 namespace SharpSBC;
 
+/// <summary>
+///     Represents an SBC (Subband Codec) encoder, which is used for encoding audio data
+///     into SBC format. This encoder supports settings for sample rate, sub-band count,
+///     bit pool, channel mode, allocation mode, and block count.
+/// </summary>
 [SuppressMessage("ReSharper", "UnusedMember.Global")]
 public class SbcEncoder : IDisposable
 {
@@ -55,7 +60,7 @@ public class SbcEncoder : IDisposable
     ///     SBC input block size in bytes.
     /// </summary>
     public ulong CodeSize { get; }
-    
+
     /// <summary>
     ///     SBC output block (frame) size in bytes.
     /// </summary>
@@ -66,6 +71,19 @@ public class SbcEncoder : IDisposable
         sbc_finish(ref _sbc);
     }
 
+    /// <summary>
+    ///     Encodes audio data from a source buffer into a destination buffer, using the SBC encoding format.
+    /// </summary>
+    /// <param name="src">The source buffer containing raw audio data to encode.</param>
+    /// <param name="dst">The destination buffer that will hold the encoded SBC data.</param>
+    /// <param name="dstSize">The maximum size of the destination buffer, in bytes.</param>
+    /// <param name="encoded">
+    ///     An output parameter that contains the number of bytes successfully encoded into the destination
+    ///     buffer.
+    /// </param>
+    /// <returns>
+    ///     The number of bytes consumed from the source buffer during encoding. Returns -1 if encoding fails.
+    /// </returns>
     public long Encode(ReadOnlySpan<byte> src, ReadOnlySpan<byte> dst, ulong dstSize, out ulong encoded)
     {
         ulong tmp;
@@ -85,6 +103,21 @@ public class SbcEncoder : IDisposable
         return len;
     }
 
+    /// <summary>
+    ///     Encodes audio data from a source buffer into a destination buffer using the SBC encoding format.
+    /// </summary>
+    /// <param name="src">A pointer to the source buffer containing raw audio data to encode.</param>
+    /// <param name="dst">A pointer to the destination buffer where the encoded SBC data will be stored.</param>
+    /// <param name="dstSize">The size of the destination buffer, in bytes.</param>
+    /// <param name="encoded">
+    ///     An output parameter that holds the number of bytes successfully written to the destination
+    ///     buffer.
+    /// </param>
+    /// <returns>
+    ///     The number of bytes consumed from the source buffer during the encoding process. Returns -1 if the encoding
+    ///     operation fails.
+    /// </returns>
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public unsafe long Encode(byte* src, byte* dst, ulong dstSize, out ulong encoded)
     {
         ulong tmp;
