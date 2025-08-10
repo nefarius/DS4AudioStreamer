@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 using DS4Windows;
 
 using FFT.CRC;
@@ -96,7 +94,12 @@ public class NewCaptureWorker : IDisposable
                 _outputBuffer[size - 2] = (byte)(crc >> 16);
                 _outputBuffer[size - 1] = (byte)(crc >> 24);
 
-                _hidDevice.WriteOutputReportViaInterrupt(_outputBuffer.AsSpan().Slice(0, size).ToArray(), 10);
+                _hidDevice.WriteOutputReportViaInterrupt(_outputBuffer
+                        .AsSpan()
+                        .Slice(0, size)
+                        .ToArray(),
+                    10
+                );
             }
         }
     }
