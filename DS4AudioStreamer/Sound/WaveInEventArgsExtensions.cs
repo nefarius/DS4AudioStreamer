@@ -9,5 +9,4 @@ public static class WaveInEventArgsExtensions
     {
         return args.BytesRecorded / device.WaveFormat.BlockAlign;
     }
-
 }
