@@ -4,6 +4,8 @@
  * Ultimately, we want the individual types used to be decoupled for easy reuse, some day :)
  */
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace DS4AudioStreamer.Sound;
 
 public class CircularBuffer<T> where T : unmanaged
@@ -27,6 +29,7 @@ public class CircularBuffer<T> where T : unmanaged
         _end = 0;
     }
 
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     public int Capacity => _backingBuffer.Length;
 
     public int CurrentLength
