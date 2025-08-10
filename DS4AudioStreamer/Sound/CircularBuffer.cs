@@ -21,7 +21,7 @@ public class CircularBuffer<T> where T : unmanaged
     /// <summary>
     ///     Creates a circular buffer
     /// </summary>
-    /// <param name="size">Size of the buffer in samples</param>
+    /// <param name="size">Size of the buffer in number of <see cref="T"/>s.</param>
     public CircularBuffer(int size)
     {
         _backingBuffer = new T[size];
