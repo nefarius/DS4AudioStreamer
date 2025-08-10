@@ -47,7 +47,7 @@ public class HidDevice : IDisposable
         }
     }
 
-    public SafeFileHandle SafeReadHandle { get; private set; }
+    public SafeFileHandle? SafeReadHandle { get; private set; }
 
     public bool IsOpen { get; private set; }
 
