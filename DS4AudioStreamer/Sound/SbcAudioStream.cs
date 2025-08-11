@@ -176,6 +176,7 @@ public class SbcAudioStream : IDisposable
                     Debug.WriteLine("Not all frames used (?)");
                 }
 
+                // downlsampling can decrease the output frame count, upsampling could increase it
                 int convertedSamples = convert.output_frames_gen * SbcChannelCount;
                 src_float_to_short_array(dataOut, finalShortFormat, convertedSamples);
                 finalSampleCount = convertedSamples;
