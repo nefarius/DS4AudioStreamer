@@ -217,7 +217,6 @@ public class SbcAudioStream : IDisposable
         if (CurrentFrameCount > 0)
         {
             SbcAudioFramesAvailable?.Invoke(this, EventArgs.Empty);
-            ;
         }
     }
 }
