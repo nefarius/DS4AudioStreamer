@@ -16,4 +16,5 @@ Contains work licensed GPL-2.0-or-later, MIT, BSD-2-Clause and others.
 
 - [libsbc](https://github.com/nefarius/libsbc)
 - [libsamplerate](https://github.com/libsndfile/libsamplerate)
+- [NAudio](https://github.com/naudio/NAudio)
 - [CsWin32](https://github.com/microsoft/CsWin32)
