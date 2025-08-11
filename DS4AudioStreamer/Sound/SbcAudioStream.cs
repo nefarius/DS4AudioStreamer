@@ -153,7 +153,7 @@ public class SbcAudioStream : IDisposable
         short* finalShortFormat = stackalloc short[outSamples];
         int finalSampleCount = 0;
 
-        fixed (float* pBuffer = MemoryMarshal.Cast<byte, float>(e.Buffer))
+        fixed (float* pcmBuffer = MemoryMarshal.Cast<byte, float>(e.Buffer))
         {
             if (SbcSampleRate != _captureDevice.WaveFormat.SampleRate)
             {
@@ -163,7 +163,7 @@ public class SbcAudioStream : IDisposable
 
                 // copy so both (in and out) memory regions are on the stack
                 Buffer.MemoryCopy(
-                    pBuffer,
+                    pcmBuffer,
                     dataIn,
                     inSamples * sizeof(float),
                     inSamples * sizeof(float)
@@ -200,7 +200,7 @@ public class SbcAudioStream : IDisposable
             else
             {
                 // convert only
-                src_float_to_short_array(pBuffer, finalShortFormat, inSamples);
+                src_float_to_short_array(pcmBuffer, finalShortFormat, inSamples);
                 finalSampleCount = inSamples;
             }
         }
