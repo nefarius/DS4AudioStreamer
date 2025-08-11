@@ -18,3 +18,4 @@ Contains work licensed GPL-2.0-or-later, MIT, BSD-2-Clause and others.
 - [libsamplerate](https://github.com/libsndfile/libsamplerate)
 - [NAudio](https://github.com/naudio/NAudio)
 - [CsWin32](https://github.com/microsoft/CsWin32)
+- [Nefarius.Utilities.DeviceManagement](https://github.com/nefarius/Nefarius.Utilities.DeviceManagement)

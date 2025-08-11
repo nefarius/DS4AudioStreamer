@@ -16,6 +16,7 @@
       </PackageReference>
       <PackageReference Include="NAudio" Version="2.2.1" />
       <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+      <PackageReference Include="Nefarius.Utilities.DeviceManagement" Version="5.1.0" />
     </ItemGroup>
 
     <ItemGroup>

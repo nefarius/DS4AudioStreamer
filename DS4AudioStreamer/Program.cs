@@ -3,13 +3,31 @@ using DS4AudioStreamer.Sound;
 
 using DS4Windows;
 
+using Nefarius.Utilities.DeviceManagement.PnP;
+
 List<HidDevice> hidDevices = DeviceEnumerator.FindDevices();
 
 using HidDevice? usedDevice = hidDevices.FirstOrDefault();
 
-if (null == usedDevice)
+if (usedDevice is null)
 {
-    Console.WriteLine("No device found");
+    Console.WriteLine("No compatible DS4 device found");
+    return;
+}
+
+PnPDevice? pnpDevice = PnPDevice.GetDeviceByInterfaceId(usedDevice.DevicePath);
+
+if (pnpDevice is null)
+{
+    Console.WriteLine("Failed to lookup PNP device details");
+    return;
+}
+
+string? enumerator = pnpDevice.Parent?.GetProperty<string>(DevicePropertyKey.Device_EnumeratorName);
+
+if (enumerator is not null && !enumerator.Contains("BTH"))
+{
+    Console.WriteLine($"Device {pnpDevice} is not connected via Bluetooth");
     return;
 }
 
