@@ -23,6 +23,8 @@ if (pnpDevice is null)
     return;
 }
 
+Console.WriteLine($"Found controller device {pnpDevice}");
+
 string? enumerator = pnpDevice.Parent?.GetProperty<string>(DevicePropertyKey.Device_EnumeratorName);
 
 if (enumerator is not null && !enumerator.Contains("BTH"))
@@ -47,7 +49,7 @@ if (!usedDevice.IsOpen)
 using HidAudioRouterWorker captureWorker = new(usedDevice);
 captureWorker.Start();
 
-Console.WriteLine("Press F3 to exit");
+Console.WriteLine("Started sending audio from default output device. Press F3 to exit...");
 
 while (usedDevice.IsConnected)
 {
