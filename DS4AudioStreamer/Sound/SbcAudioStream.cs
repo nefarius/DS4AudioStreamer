@@ -102,13 +102,23 @@ public class SbcAudioStream : IDisposable
         _encoder.Dispose();
     }
 
+    /// <summary>
+    ///     Occurs when SBC audio frames are available in the buffer for processing.
+    /// </summary>
     public event EventHandler<EventArgs>? SbcAudioFramesAvailable;
 
+    /// <summary>
+    ///     Initializes the process of capturing audio data, starting the recording session for the associated audio stream.
+    /// </summary>
     public void Start()
     {
         _captureDevice.StartRecording();
     }
 
+    /// <summary>
+    ///     Stops the recording process on the associated WASAPI capture device, halting any currently active audio data
+    ///     capture.
+    /// </summary>
     public void Stop()
     {
         _captureDevice.StopRecording();
@@ -118,9 +128,16 @@ public class SbcAudioStream : IDisposable
     ///     Invoked when PCM captured data is available for processing.
     /// </summary>
     /// <remarks>
-    ///     This is expected to be invoked roughly every 10 milliseconds with a fixed buffer size,
-    ///     except for silence.
-    ///     Behavior might change if a different capture device is used.
+    ///     <para>
+    ///         This is expected to be invoked roughly every 10 milliseconds with a fixed buffer size,
+    ///         except for silence.
+    ///     </para>
+    ///     <para>
+    ///         Behavior might change if a different capture device is used.
+    ///     </para>
+    ///     <para>
+    ///         This method stack allocates the required buffers dynamically.
+    ///     </para>
     /// </remarks>
     private unsafe void OnAudioCaptured(object? sender, WaveInEventArgs e)
     {
