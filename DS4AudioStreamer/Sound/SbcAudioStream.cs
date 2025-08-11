@@ -74,7 +74,6 @@ public class SbcAudioStream : IDisposable
 
         Console.WriteLine($"SBC Buffer size: {bufferSize}");
 
-        // TODO: fix size calculation
         _sourceAudioBuffer = new CircularBuffer<byte>(bufferSize);
         SbcAudioData = new CircularBuffer<byte>(bufferSize);
     }
