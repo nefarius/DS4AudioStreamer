@@ -87,9 +87,6 @@ public class HidAudioRouterWorker : IDisposable
                 _outputBuffer[3] = (byte)(lilEndianCounter & 0xFF);
                 _outputBuffer[4] = (byte)((lilEndianCounter >> 8) & 0xFF);
 
-                // TODO: setting volume happens in a different report,
-                // which we do not currently implement in this demo loop
-
                 _outputBuffer[5] = 0x02; // 0x02 Speaker Mode On / 0x24 Headset Mode On
                 //_outputBuffer[5] = 0x24; // 0x02 Speaker Mode On / 0x24 Headset Mode On
 
@@ -132,8 +129,54 @@ public class HidAudioRouterWorker : IDisposable
 
     public void Start()
     {
+        SendControllerDataReport();
         _stream.Start();
         _workerThread.Start();
+    }
+    
+    private void SendControllerDataReport()
+    {
+        int size = 78;
+        Array.Fill<byte>(_outputBuffer, 0);
+
+        _outputBuffer[0] = 0x11;            // Report ID
+        _outputBuffer[1] = 0x40 | 0x80;     // Mode Type
+        _outputBuffer[2] = 0xA2;            // Transaction type
+        _outputBuffer[3] = 0xF3;            // Common Flags enable rumble (0x01), lightbar (0x02), flash (0x04) Headphone volume L (0x10), Headphone volume R (0x20), Mic volume (0x40), Speaker volume (0x80)
+
+        _outputBuffer[6] = 0;               // Rumble Right
+        _outputBuffer[7] = 0;               // Rumble Left
+
+        _outputBuffer[8] = 255;             // Light Bar Red
+        _outputBuffer[9] = 0;               // Light Bar Green
+        _outputBuffer[10] = 255;            // Light Bar Blue
+
+        _outputBuffer[11] = 0;              // Flash On
+        _outputBuffer[12] = 0;              // Flash Off
+
+        _outputBuffer[21] = 0x50;           // Left Channel Volume      int: 0-80
+        _outputBuffer[22] = 0x50;           // Right Channel Volume     int: 0-80
+        _outputBuffer[23] = 0x50;           // Mic Volume               int: 0-80
+        _outputBuffer[24] = 0x50;           // Speaker Volume           int: 0-80
+
+        uint crc = ComputeCrc32(_outputBuffer, 0, size - 4);
+        BitConverter.GetBytes(crc).CopyTo(_outputBuffer, size - 4);
+
+        _hidDevice.WriteOutputReportViaInterrupt(_outputBuffer.AsSpan()[..size]);
+    }
+
+    private uint ComputeCrc32(byte[] data, int offset, int length)
+    {
+        uint crc = ~0xEADA2D49u;
+        for (int i = offset; i < offset + length; i++)
+        {
+            crc ^= data[i];
+            for (int b = 0; b < 8; b++)
+                crc = (crc & 1) != 0
+                    ? (crc >> 1) ^ 0xEDB88320u
+                    : crc >> 1;
+        }
+        return ~crc;
     }
 
     #region Tuning
