@@ -1,9 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
 
-using DS4Windows;
-
-namespace DS4AudioStreamer.HidLibrary;
+namespace DS4Windows;
 
 public class HidDevices
 {
@@ -58,38 +56,6 @@ public class HidDevices
             productIds.Contains(x.Attributes.ProductId));
     }
 
-    public static IEnumerable<HidDevice> EnumerateDS4(VidPidInfo[] devInfo)
-    {
-        //int iDebugDevCount = 0;
-        List<HidDevice> foundDevs = new List<HidDevice>();
-        int devInfoLen = devInfo.Length;
-        IEnumerable<DeviceInfo> temp = EnumerateDevices();
-        for (IEnumerator<DeviceInfo> devEnum = temp.GetEnumerator(); devEnum.MoveNext();)
-            //for (int i = 0, len = temp.Count(); i < len; i++)
-        {
-            DeviceInfo x = devEnum.Current;
-            //DeviceInfo x = temp.ElementAt(i);               
-            HidDevice tempDev = new HidDevice(x.Path, x.Description, x.Parent);
-            //iDebugDevCount++;
-            //AppLogger.LogToGui($"DEBUG: HID#{iDebugDevCount} Path={x.Path}  Description={x.Description}  VID={tempDev.Attributes.VendorHexId}  PID={tempDev.Attributes.ProductHexId}  Usage=0x{tempDev.Capabilities.Usage.ToString("X")}  Version=0x{tempDev.Attributes.Version.ToString("X")}", false);
-            bool found = false;
-            for (int j = 0; !found && j < devInfoLen; j++)
-            {
-                VidPidInfo tempInfo = devInfo[j];
-                if ((tempDev.Capabilities.Usage == HID_USAGE_GAMEPAD ||
-                     tempDev.Capabilities.Usage == HID_USAGE_JOYSTICK) &&
-                    tempDev.Attributes.VendorId == tempInfo.vid &&
-                    tempDev.Attributes.ProductId == tempInfo.pid)
-                {
-                    found = true;
-                    foundDevs.Add(tempDev);
-                }
-            }
-        }
-
-        return foundDevs;
-    }
-
     public static IEnumerable<HidDevice> Enumerate(int vendorId)
     {
         return EnumerateDevices().Select(x => new HidDevice(x.Path, x.Description))
@@ -98,7 +64,7 @@ public class HidDevices
 
     private static IEnumerable<DeviceInfo> EnumerateDevices()
     {
-        List<DeviceInfo> devices = new List<DeviceInfo>();
+        List<DeviceInfo> devices = new();
         Guid hidClass = HidClassGuid;
         IntPtr deviceInfoSet = NativeMethods.SetupDiGetClassDevs(ref hidClass, null, 0,
             NativeMethods.DIGCF_PRESENT | NativeMethods.DIGCF_DEVICEINTERFACE);
@@ -112,8 +78,7 @@ public class HidDevices
             {
                 deviceIndex += 1;
 
-                NativeMethods.SP_DEVICE_INTERFACE_DATA deviceInterfaceData =
-                    new NativeMethods.SP_DEVICE_INTERFACE_DATA();
+                NativeMethods.SP_DEVICE_INTERFACE_DATA deviceInterfaceData = new();
                 deviceInterfaceData.cbSize = Marshal.SizeOf(deviceInterfaceData);
                 int deviceInterfaceIndex = 0;
 
@@ -137,7 +102,7 @@ public class HidDevices
 
     private static NativeMethods.SP_DEVINFO_DATA CreateDeviceInfoData()
     {
-        NativeMethods.SP_DEVINFO_DATA deviceInfoData = new NativeMethods.SP_DEVINFO_DATA();
+        NativeMethods.SP_DEVINFO_DATA deviceInfoData = new();
 
         deviceInfoData.cbSize = Marshal.SizeOf(deviceInfoData);
         deviceInfoData.DevInst = 0;
@@ -152,10 +117,7 @@ public class HidDevices
     {
         int bufferSize = 0;
         NativeMethods.SP_DEVICE_INTERFACE_DETAIL_DATA interfaceDetail =
-            new NativeMethods.SP_DEVICE_INTERFACE_DETAIL_DATA
-            {
-                Size = IntPtr.Size == 4 ? 4 + Marshal.SystemDefaultCharSize : 8
-            };
+            new() { Size = IntPtr.Size == 4 ? 4 + Marshal.SystemDefaultCharSize : 8 };
 
         NativeMethods.SetupDiGetDeviceInterfaceDetailBuffer(deviceInfoSet, ref deviceInterfaceData, IntPtr.Zero, 0,
             ref bufferSize, IntPtr.Zero);
@@ -181,7 +143,7 @@ public class HidDevices
             descriptionBuffer.Length,
             ref requiredSize);
 
-        return descriptionBuffer.ToUtf8String();
+        return descriptionBuffer.ToUTF8String();
     }
 
     private static string GetBusReportedDeviceDescription(IntPtr deviceInfoSet,
@@ -205,7 +167,7 @@ public class HidDevices
 
             if (_continue)
             {
-                return descriptionBuffer.ToUtf16String();
+                return descriptionBuffer.ToUTF16String();
             }
         }
 

@@ -40,6 +40,9 @@ namespace SharpSampleRate
 
         [DllImport(NativeLibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int src_process(SRC_STATE_PTR state, ref SRC_DATA data);
+        
+        [DllImport(NativeLibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int src_process(SRC_STATE_PTR state, SRC_DATA* data);
 
         [DllImport(NativeLibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern long src_callback_read(SRC_STATE_PTR state, double src_ratio, long frames, float* data);

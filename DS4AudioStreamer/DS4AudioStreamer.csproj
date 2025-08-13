@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net9.0-windows8</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -10,8 +10,13 @@
 
     <ItemGroup>
       <PackageReference Include="FFT.CRC" Version="0.0.18" />
+      <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
       <PackageReference Include="NAudio" Version="2.2.1" />
       <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+      <PackageReference Include="Nefarius.Utilities.DeviceManagement" Version="5.1.0" />
     </ItemGroup>
 
     <ItemGroup>

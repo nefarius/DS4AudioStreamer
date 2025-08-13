@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
@@ -9,29 +12,35 @@ using ChannelMode = SharpSBC.ChannelMode;
 
 namespace DS4AudioStreamer.Sound;
 
+/// <summary>
+///     Represents a stream of SBC (Low Complexity Subband Codec) encoded audio data, specifically tailored for use with
+///     DS4-compatible devices.
+/// </summary>
 public class SbcAudioStream : IDisposable
 {
-    private const int STREAM_SAMPLE_RATE = 32000;
-    private const int CHANNEL_COUNT = 2;
+    // target sample rate
+    private const int SbcSampleRate = 32_000;
 
-    private readonly CircularBuffer<byte> _audioData;
+    // target channel count for speaker or headset (stereo)
+    private const int SbcChannelCount = 2;
 
     private readonly WasapiCapture _captureDevice;
-
     private readonly SbcEncoder _encoder;
-    private readonly byte[] _reformattedAudioBuffer;
-    private readonly byte[] _resampledAudioBuffer;
     private readonly double _resampleRatio;
-
     private readonly IntPtr _resamplerState;
     private readonly byte[] _sbcPostBuffer;
     private readonly byte[] _sbcPreBuffer;
-    
+    private readonly CircularBuffer<byte> _sourceAudioBuffer;
+
+    /// <summary>
+    ///     Represents an audio stream using SBC (Subband Coding) encoding and captures audio data from a WASAPI capture
+    ///     device.
+    /// </summary>
     public SbcAudioStream()
     {
-        // Encoder
+        // SBC Encoder setting compatible with DS4 variants
         _encoder = new SbcEncoder(
-            STREAM_SAMPLE_RATE,
+            SbcSampleRate,
             SubBandCount.Sb8,
             48,
             ChannelMode.JointStereo,
@@ -42,127 +51,189 @@ public class SbcAudioStream : IDisposable
         _sbcPreBuffer = new byte[_encoder.CodeSize];
         _sbcPostBuffer = new byte[_encoder.FrameSize];
 
-        // Capture Device
-        var device = new MMDeviceEnumerator()
+        // Capture Device (default output device)
+        MMDevice? device = new MMDeviceEnumerator()
             .GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
 
-        _captureDevice = new WasapiLoopbackCapture(device);
-        _captureDevice.DataAvailable += CaptureDeviceOnDataAvailable;
+        Console.WriteLine($"Default output device: {device.FriendlyName}");
 
-        // Buffers
-        int bufferSize = _captureDevice.WaveFormat.ConvertLatencyToByteSize(32);
-        _audioData = new CircularBuffer<byte>(bufferSize);
-        SbcAudioData = new CircularBuffer<byte>(bufferSize);
-        _resampledAudioBuffer = new byte[bufferSize];
-        _reformattedAudioBuffer = new byte[bufferSize];
+        _captureDevice = new BufferedLoopbackCapture(device);
+        _captureDevice.DataAvailable += OnAudioCaptured;
 
         // Resampler
-        _resamplerState = src_new(Quality.SRC_SINC_BEST_QUALITY, CHANNEL_COUNT, out int error);
-        _resampleRatio = STREAM_SAMPLE_RATE / (double)_captureDevice.WaveFormat.SampleRate;
+        _resamplerState = src_new(Quality.SRC_SINC_BEST_QUALITY, SbcChannelCount, out int error);
         if (IntPtr.Zero == _resamplerState)
         {
             throw new Exception(src_strerror(error));
         }
+
+        _resampleRatio = SbcSampleRate / (double)_captureDevice.WaveFormat.SampleRate;
+
+        // Buffers
+        int bufferSize = _captureDevice.WaveFormat.ConvertLatencyToByteSize(32);
+
+        Console.WriteLine($"SBC Buffer size: {bufferSize}");
+
+        _sourceAudioBuffer = new CircularBuffer<byte>(bufferSize);
+        SbcAudioData = new CircularBuffer<byte>(bufferSize);
     }
 
+    /// <summary>
+    ///     SBC-encoded audio ring buffer.
+    /// </summary>
     public CircularBuffer<byte> SbcAudioData { get; }
 
+    /// <summary>
+    ///     SBC output block size.
+    /// </summary>
     public int FrameSize => (int)_encoder.FrameSize;
 
+    /// <summary>
+    ///     Number of encoded frames available.
+    /// </summary>
     public int CurrentFrameCount => SbcAudioData.CurrentLength / FrameSize;
 
+    /// <inheritdoc />
     public void Dispose()
     {
         GC.SuppressFinalize(this);
-        
+
         _captureDevice.Dispose();
         _encoder.Dispose();
     }
 
+    /// <summary>
+    ///     Occurs when SBC audio frames are available in the buffer for processing.
+    /// </summary>
+    public event EventHandler<EventArgs>? SbcAudioFramesAvailable;
+
+    /// <summary>
+    ///     Initializes the process of capturing audio data, starting the recording session for the associated audio stream.
+    /// </summary>
     public void Start()
     {
         _captureDevice.StartRecording();
     }
 
-    public void WaitUntil(int frameCount)
-    {
-        while (SbcAudioData.CurrentLength < frameCount * FrameSize)
-        {
-            Thread.Yield();
-        }
-    }
-
+    /// <summary>
+    ///     Stops the recording process on the associated WASAPI capture device, halting any currently active audio data
+    ///     capture.
+    /// </summary>
     public void Stop()
     {
         _captureDevice.StopRecording();
     }
 
-    private unsafe void CaptureDeviceOnDataAvailable(object? sender, WaveInEventArgs e)
+    /// <summary>
+    ///     Invoked when PCM captured data is available for processing.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         This is expected to be invoked roughly every 10 milliseconds with a fixed buffer size,
+    ///         except for silence.
+    ///     </para>
+    ///     <para>
+    ///         Behavior might change if a different capture device is used.
+    ///     </para>
+    ///     <para>
+    ///         This method stack allocates the required buffers dynamically.
+    ///     </para>
+    /// </remarks>
+    private unsafe void OnAudioCaptured(object? sender, WaveInEventArgs e)
     {
-        try
+        WasapiCapture? device = sender as WasapiCapture;
+        ArgumentNullException.ThrowIfNull(device);
+        int inFrameCount = e.GetNumFrames(device);
+
+        // smaller when downsampling, larger when upsampling
+        int outFrameCount = (int)Math.Ceiling(inFrameCount * _resampleRatio);
+        int inSamples = inFrameCount * SbcChannelCount;
+        int outSamples = outFrameCount * SbcChannelCount;
+
+        short* finalShortFormat = stackalloc short[outSamples];
+        int finalSampleCount = 0;
+
+        fixed (float* pcmBuffer = MemoryMarshal.Cast<byte, float>(e.Buffer))
         {
-            int sampleCount = e.BytesRecorded / 4;
-
-            int reformatedSampleCount = sampleCount;
-
-            fixed (byte* srcPtr = e.Buffer)
-            fixed (byte* resamplePtr = _resampledAudioBuffer)
-            fixed (byte* reformatPtr = _reformattedAudioBuffer)
+            if (SbcSampleRate != _captureDevice.WaveFormat.SampleRate)
             {
-                if (STREAM_SAMPLE_RATE != _captureDevice.WaveFormat.SampleRate)
+                // resample and convert
+                float* dataIn = stackalloc float[inSamples];
+                float* dataOut = stackalloc float[outSamples];
+
+                // copy so both (in and out) memory regions are on the stack
+                Buffer.MemoryCopy(
+                    pcmBuffer,
+                    dataIn,
+                    inSamples * sizeof(float),
+                    inSamples * sizeof(float)
+                );
+
+                SRC_DATA convert = new()
                 {
-                    int frames = sampleCount / CHANNEL_COUNT;
-                    SRC_DATA convert = new()
-                    {
-                        data_in = (float*)srcPtr,
-                        data_out = (float*)resamplePtr,
-                        input_frames = frames,
-                        output_frames = frames,
-                        src_ratio = _resampleRatio
-                    };
+                    data_in = dataIn,
+                    data_out = dataOut,
+                    input_frames = inFrameCount,
+                    output_frames = outFrameCount,
+                    src_ratio = _resampleRatio
+                };
 
-                    int res = src_process(_resamplerState, ref convert);
+                int res = src_process(_resamplerState, &convert);
 
-                    if (res != 0)
-                    {
-                        throw new Exception(src_strerror(res));
-                    }
-
-                    if (convert.input_frames != convert.input_frames_used)
-                    {
-                        Console.WriteLine("Not all frames used (?)");
-                    }
-
-                    reformatedSampleCount = convert.output_frames_gen * CHANNEL_COUNT;
-                    src_float_to_short_array((float*)resamplePtr, (short*)reformatPtr, reformatedSampleCount);
-                }
-                else
+                if (res != 0)
                 {
-                    src_float_to_short_array((float*)srcPtr, (short*)reformatPtr, sampleCount);
+                    throw new Exception(src_strerror(res));
                 }
+
+                // plausibility check
+                if (convert.input_frames != convert.input_frames_used)
+                {
+                    // TODO: error handling
+                    Debug.WriteLine("Not all frames used (?)");
+                }
+
+                // downlsampling can decrease the output frame count, upsampling could increase it
+                int convertedSamples = convert.output_frames_gen * SbcChannelCount;
+                src_float_to_short_array(dataOut, finalShortFormat, convertedSamples);
+                finalSampleCount = convertedSamples;
             }
-
-            _audioData.CopyFrom(_reformattedAudioBuffer, reformatedSampleCount * 2);
-
-            while (_audioData.CurrentLength >= (int)_encoder.CodeSize)
+            else
             {
-                _audioData.CopyTo(_sbcPreBuffer, (int)_encoder.CodeSize);
-
-                _encoder.Encode(_sbcPreBuffer, _sbcPostBuffer, _encoder.CodeSize, out ulong length);
-
-                if (length == 0)
-                {
-                    Console.WriteLine("Not encoded");
-                }
-                else
-                {
-                    SbcAudioData.CopyFrom(_sbcPostBuffer, (int)length);
-                }
+                // convert only
+                src_float_to_short_array(pcmBuffer, finalShortFormat, inSamples);
+                finalSampleCount = inSamples;
             }
         }
-        catch (Exception exception)
+
+        Span<short> shortSpan = new(finalShortFormat, outSamples);
+        Span<byte> byteSpan = MemoryMarshal.AsBytes(shortSpan);
+
+        // managed instance of our resampled and converted audio stream
+        _sourceAudioBuffer.CopyFrom(byteSpan.ToArray(), finalSampleCount * sizeof(short));
+
+        // SBC encoding - we must have enough samples buffered to fill at least one block
+        while (_sourceAudioBuffer.CurrentLength >= (int)_encoder.CodeSize)
         {
-            Console.WriteLine("Exception: {0}", exception);
+            // pop block from the ring buffer
+            _sourceAudioBuffer.CopyTo(_sbcPreBuffer, (int)_encoder.CodeSize);
+
+            _encoder.Encode(_sbcPreBuffer, _sbcPostBuffer, _encoder.CodeSize, out ulong length);
+
+            if (length == 0)
+            {
+                // TODO: error handling
+                Console.WriteLine("Not encoded");
+            }
+            else
+            {
+                // push frame to final buffer
+                SbcAudioData.CopyFrom(_sbcPostBuffer, (int)length);
+            }
+        }
+
+        if (CurrentFrameCount > 0)
+        {
+            SbcAudioFramesAvailable?.Invoke(this, EventArgs.Empty);
         }
     }
 }

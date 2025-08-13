@@ -1,13 +1,35 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 using static SharpSBC.Native;
 
 namespace SharpSBC;
 
+/// <summary>
+///     Represents an SBC (Subband Codec) encoder, which is used for encoding audio data
+///     into SBC format. This encoder supports settings for sample rate, sub-band count,
+///     bit pool, channel mode, allocation mode, and block count.
+/// </summary>
+[SuppressMessage("ReSharper", "UnusedMember.Global")]
 public class SbcEncoder : IDisposable
 {
     private sbc_t _sbc;
 
+    /// <summary>
+    ///     Represents an SBC (Low Complexity Subband Codec) encoder for encoding audio data.
+    /// </summary>
+    /// <remarks>
+    ///     This class initializes and configures the SBC encoder with specific parameters such as sample rate,
+    ///     subband count, bit pool size, channel mode, allocation method, and block count. It provides essential
+    ///     data like code size and frame size, which are required for audio encoding.
+    /// </remarks>
+    /// <param name="sampleRate">The sample rate of the audio in Hz (e.g., 16000, 32000, 44100, 48000).</param>
+    /// <param name="subBandsCount">The number of subbands used for audio encoding (4 or 8).</param>
+    /// <param name="bitPool">The bitpool size, which determines audio quality and compression rate.</param>
+    /// <param name="channelMode">The channel mode used for audio encoding, such as Mono or Joint Stereo.</param>
+    /// <param name="snr">The allocation mode, specifying how bits are distributed during encoding (e.g., Loudness or SNR).</param>
+    /// <param name="blocks">The block count, representing the number of blocks used for encoding (4, 8, 12, or 16).</param>
+    /// <exception cref="Exception">Thrown if the SBC encoder cannot initialize properly.</exception>
     public SbcEncoder(
         int sampleRate,
         SubBandCount subBandsCount,
@@ -49,7 +71,14 @@ public class SbcEncoder : IDisposable
         FrameSize = sbc_get_frame_length(ref _sbc);
     }
 
+    /// <summary>
+    ///     SBC input block size in bytes.
+    /// </summary>
     public ulong CodeSize { get; }
+
+    /// <summary>
+    ///     SBC output block (frame) size in bytes.
+    /// </summary>
     public ulong FrameSize { get; }
 
     public void Dispose()
@@ -57,6 +86,19 @@ public class SbcEncoder : IDisposable
         sbc_finish(ref _sbc);
     }
 
+    /// <summary>
+    ///     Encodes audio data from a source buffer into a destination buffer, using the SBC encoding format.
+    /// </summary>
+    /// <param name="src">The source buffer containing raw audio data to encode.</param>
+    /// <param name="dst">The destination buffer that will hold the encoded SBC data.</param>
+    /// <param name="dstSize">The maximum size of the destination buffer, in bytes.</param>
+    /// <param name="encoded">
+    ///     An output parameter that contains the number of bytes successfully encoded into the destination
+    ///     buffer.
+    /// </param>
+    /// <returns>
+    ///     The number of bytes consumed from the source buffer during encoding. Returns -1 if encoding fails.
+    /// </returns>
     public long Encode(ReadOnlySpan<byte> src, ReadOnlySpan<byte> dst, ulong dstSize, out ulong encoded)
     {
         ulong tmp;
@@ -64,12 +106,38 @@ public class SbcEncoder : IDisposable
 
         unsafe
         {
-            fixed (byte* psrc = src)
-            fixed (byte* pdst = dst)
+            fixed (byte* pSrc = src)
+            fixed (byte* pDst = dst)
             {
-                len = sbc_encode(ref _sbc, psrc, CodeSize, pdst, dstSize, &tmp);
+                len = Encode(pSrc, pDst, dstSize, out tmp);
             }
         }
+
+        encoded = tmp;
+
+        return len;
+    }
+
+    /// <summary>
+    ///     Encodes audio data from a source buffer into a destination buffer using the SBC encoding format.
+    /// </summary>
+    /// <param name="src">A pointer to the source buffer containing raw audio data to encode.</param>
+    /// <param name="dst">A pointer to the destination buffer where the encoded SBC data will be stored.</param>
+    /// <param name="dstSize">The size of the destination buffer, in bytes.</param>
+    /// <param name="encoded">
+    ///     An output parameter that holds the number of bytes successfully written to the destination
+    ///     buffer.
+    /// </param>
+    /// <returns>
+    ///     The number of bytes consumed from the source buffer during the encoding process. Returns -1 if the encoding
+    ///     operation fails.
+    /// </returns>
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+    public unsafe long Encode(byte* src, byte* dst, ulong dstSize, out ulong encoded)
+    {
+        ulong tmp;
+
+        long len = sbc_encode(ref _sbc, src, CodeSize, dst, dstSize, &tmp);
 
         encoded = tmp;
 
