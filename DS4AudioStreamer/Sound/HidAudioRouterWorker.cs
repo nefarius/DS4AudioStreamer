@@ -87,8 +87,8 @@ public class HidAudioRouterWorker : IDisposable
                 _outputBuffer[3] = (byte)(lilEndianCounter & 0xFF);
                 _outputBuffer[4] = (byte)((lilEndianCounter >> 8) & 0xFF);
 
-                _outputBuffer[5] = 0x02; // 0x02 Speaker Mode On / 0x24 Headset Mode On
-                //_outputBuffer[5] = 0x24; // 0x02 Speaker Mode On / 0x24 Headset Mode On
+                //_outputBuffer[5] = 0x02; // 0x02 Speaker Mode On / 0x24 Headset Mode On
+                _outputBuffer[5] = 0x24; // 0x02 Speaker Mode On / 0x24 Headset Mode On
 
                 lilEndianCounter += (ushort)framesAvailable;
 
