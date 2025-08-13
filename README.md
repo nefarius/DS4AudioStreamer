@@ -11,7 +11,7 @@ as a good enough example of how well it can work.
 Built on the sweat and gray matter
 of [@asimonf](https://github.com/asimonf), [@Nielk1](https://github.com/Nielk1), 
 [@Ryochan7](https://github.com/Ryochan7), [@schmaldeo](https://github.com/schmaldeo), 
-[@Pliverse](https://github.com/Pliverse), [@nefarius](https://github.com/) 
+[@Paliverse](https://github.com/Paliverse), [@nefarius](https://github.com/) 
 and those I forgot to list 😄
 
 Contains work licensed GPL-2.0-or-later, MIT, BSD-2-Clause and others.
