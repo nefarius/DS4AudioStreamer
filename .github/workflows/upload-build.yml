@@ -38,15 +38,11 @@ jobs:
           response=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)
 
-          artifact_id=$(echo "$response" | jq -r '.artifacts[0].id')
-          artifact_file="${{ github.ref_name }}.zip"
-          artifact_url=$(echo "$response" | jq -r '.artifacts[0].archive_download_url')
-
-          # Build the UI-style artifact URL (matches what the console prints)
-          ui_url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${artifact_id}"
-
-          echo "file=${artifact_name}.zip" >> $GITHUB_OUTPUT
-          echo "url=${ui_url}" >> $GITHUB_OUTPUT
+          artifact_name=$(echo "$response" | jq -r '.artifacts[0].name')
+          artifact_url=$(echo "$response" | jq -r ".artifacts[] | select(.id==$artifact_id) | .archive_download_url")
+      
+          echo "file=$artifact_name.zip" >> $GITHUB_OUTPUT
+          echo "url=$artifact_url" >> $GITHUB_OUTPUT
 
       - name: Send webhook
         shell: bash
@@ -73,4 +69,5 @@ jobs:
 
           curl -X POST "${{ secrets.WEBHOOK_URL }}" \
             -H "Content-Type: application/json" \
+            -H "X-GitHub-Token: ${{ secrets.GITHUB_TOKEN }}" \
             -d "$payload"
