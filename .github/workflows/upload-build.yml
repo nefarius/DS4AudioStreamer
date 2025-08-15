@@ -24,43 +24,43 @@ jobs:
       - name: Publish .NET 9 Desktop App
         run: dotnet publish --configuration Release -o publish
 
-      - name: Zip published output
-        run: Compress-Archive -Path publish\* -DestinationPath output.zip
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: output
-          path: publish/**      
-      
-      - name: Get artifact download URL
+          path: publish/**
+
+      - name: Get artifact metadata
         id: get_artifact
         shell: bash
         run: |
+          # Get artifacts for this run
           response=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)
 
+          artifact_file="${{ github.ref_name }}.zip"
           artifact_url=$(echo "$response" | jq -r '.artifacts[0].archive_download_url')
+
+          echo "file=$artifact_file" >> $GITHUB_OUTPUT
           echo "url=$artifact_url" >> $GITHUB_OUTPUT
 
-      - name: Send AppVeyor-style webhook
+      - name: Send webhook
         shell: bash
         run: |
+          payload=$(jq -n \
+            --arg fileName "${{ steps.get_artifact.outputs.file }}" \
+            --arg url "${{ steps.get_artifact.outputs.url }}" \
+            --argjson envVars '{}' \
+            '{
+              artifacts: [
+                {
+                  fileName: $fileName,
+                  url: $url
+                }
+              ],
+              environmentVariables: $envVars
+            }')
+
           curl -X POST "${{ secrets.WEBHOOK_URL }}" \
             -H "Content-Type: application/json" \
-            -d '{
-              "build": {
-                "job_id": "'"${{ github.run_id }}"'",
-                "version": "'"${{ github.ref_name }}"'",
-                "branch": "'"${GITHUB_REF_NAME}"'",
-                "commit_id": "'"${GITHUB_SHA}"'",
-                "status": "success"
-              },
-              "artifacts": [
-                {
-                  "fileName": "output.zip",
-                  "type": "WebDeployPackage",
-                  "url": "'"${{ steps.get_artifact.outputs.url }}"'"
-                }
-              ]
-            }'
+            -d "$payload"
