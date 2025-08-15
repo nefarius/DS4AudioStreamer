@@ -50,7 +50,9 @@ jobs:
           payload=$(jq -n \
             --arg fileName "${{ steps.get_artifact.outputs.file }}" \
             --arg url "${{ steps.get_artifact.outputs.url }}" \
-            --argjson envVars '{}' \
+            --arg projectName "${{ github.event.repository.name }}" \
+            --arg branch "${{ github.ref_name }}" \
+            --arg buildVersion "${{ github.ref_name }}" \
             '{
               artifacts: [
                 {
@@ -58,7 +60,11 @@ jobs:
                   url: $url
                 }
               ],
-              environmentVariables: $envVars
+              environmentVariables: {
+                appveyor_project_name: $projectName,
+                appveyor_repo_branch: $branch,
+                appveyor_build_version: $buildVersion
+              }
             }')
 
           curl -X POST "${{ secrets.WEBHOOK_URL }}" \
