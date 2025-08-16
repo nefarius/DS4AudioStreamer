@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 using static SharpSBC.Native;
 
@@ -99,6 +100,7 @@ public class SbcEncoder : IDisposable
     /// <returns>
     ///     The number of bytes consumed from the source buffer during encoding. Returns -1 if encoding fails.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public long Encode(ReadOnlySpan<byte> src, ReadOnlySpan<byte> dst, ulong dstSize, out ulong encoded)
     {
         ulong tmp;
@@ -133,6 +135,7 @@ public class SbcEncoder : IDisposable
     ///     operation fails.
     /// </returns>
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe long Encode(byte* src, byte* dst, ulong dstSize, out ulong encoded)
     {
         ulong tmp;
