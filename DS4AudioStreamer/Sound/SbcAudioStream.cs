@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -59,7 +60,7 @@ public class SbcAudioStream : IDisposable
 
         _captureDevice = new BufferedLoopbackCapture(device);
         _captureDevice.DataAvailable += OnAudioCaptured;
-        
+
         Console.WriteLine($"Wave format: {_captureDevice.WaveFormat}");
 
         // Resampler
@@ -155,7 +156,16 @@ public class SbcAudioStream : IDisposable
         short* finalShortFormat = stackalloc short[outSamples];
         int finalSampleCount = 0;
 
-        fixed (float* pcmBuffer = MemoryMarshal.Cast<byte, float>(e.Buffer))
+        Span<float> pcmData = MemoryMarshal.Cast<byte, float>(e.Buffer);
+        float[] downmixed = ArrayPool<float>.Shared.Rent(inSamples);
+        
+        // TODO: experimental
+        if (_captureDevice.WaveFormat.Channels == 6)
+        {
+            Downmixer.Downmix6To2(pcmData, downmixed, inFrameCount);
+        }
+
+        fixed (float* pcmBuffer = _captureDevice.WaveFormat.Channels == 6 ? downmixed : pcmData)
         {
             if (SbcSampleRate != _captureDevice.WaveFormat.SampleRate)
             {
