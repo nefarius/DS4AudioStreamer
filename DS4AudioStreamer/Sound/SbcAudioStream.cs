@@ -158,14 +158,10 @@ public class SbcAudioStream : IDisposable
 
         Span<float> pcmData = MemoryMarshal.Cast<byte, float>(e.Buffer);
         float[] downmixed = ArrayPool<float>.Shared.Rent(inSamples);
-        
-        // TODO: experimental
-        if (_captureDevice.WaveFormat.Channels == 6)
-        {
-            Downmixer.Downmix6To2(pcmData, downmixed, inFrameCount);
-        }
 
-        fixed (float* pcmBuffer = _captureDevice.WaveFormat.Channels == 6 ? downmixed : pcmData)
+        Downmixer.DownmixToStereo(pcmData, downmixed, inFrameCount, _captureDevice.WaveFormat.Channels);
+
+        fixed (float* pcmBuffer = downmixed)
         {
             if (SbcSampleRate != _captureDevice.WaveFormat.SampleRate)
             {

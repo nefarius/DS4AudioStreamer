@@ -2,9 +2,9 @@ namespace DS4AudioStreamer.Sound;
 
 public static class Downmixer
 {
-    public static void DownmixToStereo(float[] input, float[] output, int frames, int channels)
+    public static void DownmixToStereo(Span<float> input, Span<float> output, int targetFrames, int sourceChannels)
     {
-        if (channels < 2)
+        if (sourceChannels < 2)
         {
             throw new ArgumentException("Need at least 2 channels to downmix");
         }
@@ -12,45 +12,45 @@ public static class Downmixer
         int inIdx = 0;
         int outIdx = 0;
 
-        for (int i = 0; i < frames; i++)
+        for (int i = 0; i < targetFrames; i++)
         {
             float left = input[inIdx]; // Front Left
             float right = input[inIdx + 1]; // Front Right
 
-            if (channels > 2)
+            if (sourceChannels > 2)
             {
                 // Center
-                if (channels > 2)
+                if (sourceChannels > 2)
                 {
                     left += input[inIdx + 2] * 0.7f;
                     right += input[inIdx + 2] * 0.7f;
                 }
 
                 // LFE
-                if (channels > 3)
+                if (sourceChannels > 3)
                 {
                     left += input[inIdx + 3] * 0.5f;
                     right += input[inIdx + 3] * 0.5f;
                 }
 
                 // SL/SR
-                if (channels > 4)
+                if (sourceChannels > 4)
                 {
                     left += input[inIdx + 4] * 0.7f;
                 }
 
-                if (channels > 5)
+                if (sourceChannels > 5)
                 {
                     right += input[inIdx + 5] * 0.7f;
                 }
 
                 // SBL/SBR (7.1)
-                if (channels > 6)
+                if (sourceChannels > 6)
                 {
                     left += input[inIdx + 6] * 0.7f;
                 }
 
-                if (channels > 7)
+                if (sourceChannels > 7)
                 {
                     right += input[inIdx + 7] * 0.7f;
                 }
@@ -60,12 +60,12 @@ public static class Downmixer
             output[outIdx] = left * 0.5f;
             output[outIdx + 1] = right * 0.5f;
 
-            inIdx += channels;
+            inIdx += sourceChannels;
             outIdx += 2;
         }
     }
 
-    public static unsafe void Downmix6To2(Span<float> input, Span<float> output, int frames)
+    public static void Downmix6To2(Span<float> input, Span<float> output, int frames)
     {
         int inIdx = 0;
         int outIdx = 0;
