@@ -55,10 +55,12 @@ public class SbcAudioStream : IDisposable
         MMDevice? device = new MMDeviceEnumerator()
             .GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
 
-        Console.WriteLine($"Default output device: {device.FriendlyName}");
+        Console.WriteLine($"Default capture device: {device.FriendlyName}");
 
         _captureDevice = new BufferedLoopbackCapture(device);
         _captureDevice.DataAvailable += OnAudioCaptured;
+        
+        Console.WriteLine($"Wave format: {_captureDevice.WaveFormat}");
 
         // Resampler
         _resamplerState = src_new(Quality.SRC_SINC_BEST_QUALITY, SbcChannelCount, out int error);
