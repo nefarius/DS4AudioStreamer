@@ -49,7 +49,8 @@ if (!usedDevice.IsOpen)
 using HidAudioRouterWorker captureWorker = new(usedDevice);
 captureWorker.Start();
 
-Console.WriteLine("Started sending audio from default output device. Press F3 to exit...");
+Console.WriteLine("Started sending audio from default output device");
+Console.WriteLine("> Press F3 to exit, press F4 to toggle output (speaker or headset)");
 
 while (usedDevice.IsConnected)
 {
@@ -60,6 +61,12 @@ while (usedDevice.IsConnected)
         {
             Console.WriteLine("F3 pressed, exiting...");
             break;
+        }
+        
+        if (key.Key == ConsoleKey.F4)
+        {
+            Console.WriteLine("F4 pressed, flipping outputs");
+            captureWorker.ToggleOutput();
         }
     }
 

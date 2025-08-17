@@ -6,6 +6,8 @@ namespace DS4AudioStreamer.Sound;
 
 public class HidAudioRouterWorker : IDisposable
 {
+    private const int SpeakerModeOnFlag = 0x02;
+    private const int HeadsetModeOnFlag = 0x24;
     private readonly CancellationTokenSource _cts = new();
     private readonly HidDevice _hidDevice;
 
@@ -14,6 +16,8 @@ public class HidAudioRouterWorker : IDisposable
     private readonly SbcAudioStream _stream;
 
     private readonly Thread _workerThread;
+
+    private byte _currentOutputFlag = SpeakerModeOnFlag; // default
 
     public HidAudioRouterWorker(
         HidDevice hidDevice
@@ -39,6 +43,13 @@ public class HidAudioRouterWorker : IDisposable
         _cts.Dispose();
         _hidDevice.Dispose();
         _stream.Dispose();
+    }
+
+    public void ToggleOutput()
+    {
+        _currentOutputFlag = _currentOutputFlag != SpeakerModeOnFlag
+            ? (byte)SpeakerModeOnFlag
+            : (byte)HeadsetModeOnFlag;
     }
 
     private unsafe void _worker()
@@ -87,8 +98,9 @@ public class HidAudioRouterWorker : IDisposable
                 _outputBuffer[3] = (byte)(lilEndianCounter & 0xFF);
                 _outputBuffer[4] = (byte)((lilEndianCounter >> 8) & 0xFF);
 
-                _outputBuffer[5] = 0x02; // 0x02 Speaker Mode On / 0x24 Headset Mode On
+                //_outputBuffer[5] = 0x02; // 0x02 Speaker Mode On / 0x24 Headset Mode On
                 //_outputBuffer[5] = 0x24; // 0x02 Speaker Mode On / 0x24 Headset Mode On
+                _outputBuffer[5] = _currentOutputFlag;
 
                 lilEndianCounter += (ushort)framesAvailable;
 
@@ -133,31 +145,32 @@ public class HidAudioRouterWorker : IDisposable
         _stream.Start();
         _workerThread.Start();
     }
-    
+
     private void SendControllerDataReport()
     {
         int size = 78;
         Array.Fill<byte>(_outputBuffer, 0);
 
-        _outputBuffer[0] = 0x11;            // Report ID
-        _outputBuffer[1] = 0x40 | 0x80;     // Mode Type
-        _outputBuffer[2] = 0xA2;            // Transaction type
-        _outputBuffer[3] = 0xF3;            // Common Flags enable rumble (0x01), lightbar (0x02), flash (0x04) Headphone volume L (0x10), Headphone volume R (0x20), Mic volume (0x40), Speaker volume (0x80)
+        _outputBuffer[0] = 0x11; // Report ID
+        _outputBuffer[1] = 0x40 | 0x80; // Mode Type
+        _outputBuffer[2] = 0xA2; // Transaction type
+        _outputBuffer[3] =
+            0xF3; // Common Flags enable rumble (0x01), lightbar (0x02), flash (0x04) Headphone volume L (0x10), Headphone volume R (0x20), Mic volume (0x40), Speaker volume (0x80)
 
-        _outputBuffer[6] = 0;               // Rumble Right
-        _outputBuffer[7] = 0;               // Rumble Left
+        _outputBuffer[6] = 0; // Rumble Right
+        _outputBuffer[7] = 0; // Rumble Left
 
-        _outputBuffer[8] = 255;             // Light Bar Red
-        _outputBuffer[9] = 0;               // Light Bar Green
-        _outputBuffer[10] = 255;            // Light Bar Blue
+        _outputBuffer[8] = 255; // Light Bar Red
+        _outputBuffer[9] = 0; // Light Bar Green
+        _outputBuffer[10] = 255; // Light Bar Blue
 
-        _outputBuffer[11] = 0;              // Flash On
-        _outputBuffer[12] = 0;              // Flash Off
+        _outputBuffer[11] = 0; // Flash On
+        _outputBuffer[12] = 0; // Flash Off
 
-        _outputBuffer[21] = 0x50;           // Left Channel Volume      int: 0-80
-        _outputBuffer[22] = 0x50;           // Right Channel Volume     int: 0-80
-        _outputBuffer[23] = 0x50;           // Mic Volume               int: 0-80
-        _outputBuffer[24] = 0x50;           // Speaker Volume           int: 0-80
+        _outputBuffer[21] = 0x50; // Left Channel Volume      int: 0-80
+        _outputBuffer[22] = 0x50; // Right Channel Volume     int: 0-80
+        _outputBuffer[23] = 0x50; // Mic Volume               int: 0-80
+        _outputBuffer[24] = 0x50; // Speaker Volume           int: 0-80
 
         uint crc = ComputeCrc32(_outputBuffer, 0, size - 4);
         BitConverter.GetBytes(crc).CopyTo(_outputBuffer, size - 4);
@@ -172,10 +185,13 @@ public class HidAudioRouterWorker : IDisposable
         {
             crc ^= data[i];
             for (int b = 0; b < 8; b++)
+            {
                 crc = (crc & 1) != 0
                     ? (crc >> 1) ^ 0xEDB88320u
                     : crc >> 1;
+            }
         }
+
         return ~crc;
     }
 
